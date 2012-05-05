@@ -67,7 +67,7 @@ int main (void) {
 	PORTD = 0x04; //activate pull-ups on PD2-INT0
 	GICR|=(0x40); //Enable External Interrupt 0
 	sei(); //Enable Global Interrupts
-	
+	init_printf_tools();
 	Sched_Init();
 	/* periodic task */
 	Sched_AddT(&task1, 0, 4);

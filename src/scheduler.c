@@ -5,18 +5,18 @@ void Sched_Init(void){
 	int x;
 	for(x=0; x<20; x++)
 		Task_List[x].func = 0;
-/* - Configura interrupção
+/* - Configura interrupï¿½ï¿½o
 * que periodicamente
 * corre Sched_Schedule().
 * P periodo da
-* interrupção define a
-* resolução do relógio.
+* interrupï¿½ï¿½o define a
+* resoluï¿½ï¿½o do relï¿½gio.
 * (Hardware specific!)
 */
 };
 
 
-int Sched_AddT(void (*f)(void *),int d, int p){
+int Sched_AddT(void (*f)(void ),int d, int p){
 	int x;
 	for(x=0; Task_List[x].func; x++);
 	
@@ -50,7 +50,7 @@ void Sched_Dispatch(void){
 	for(x=0; x<20; x++) {
 		if ( Task_List[x].exec == 0 ) {
 			Task_List[x].exec--;
-			Task_List[x].func(NULL);
+			Task_List[x].func();
 			/* Delete task
 			* if one-shot
 			*/
