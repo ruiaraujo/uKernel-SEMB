@@ -2,6 +2,7 @@
 
 #include <avr/io.h> 
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <util/delay.h> 
 #include "bit_tools.h" 
 #include "printf_tools.h"
@@ -53,6 +54,16 @@ count=0;
 }*/
 }
 
+// This is our idle task - the task that runs when all others are suspended.
+// We sleep the CPU - the CPU will automatically awake when the tick interrupt occurs
+void idle_task(void ) {
+	while (1)
+	{
+		sleep_enable();
+        sei();
+        sleep_cpu();
+	}
+}
 
 int main (void) {
 	
@@ -64,18 +75,15 @@ int main (void) {
 	PORTB = (uint8_t)0x03; //activate pull-ups on PB0 e PB1
 	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
 	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
-	sei(); //Enable Global Interrupts
+    cli();
 	init_printf_tools();
-	rtos_init();
 	/* periodic task */
 	add_task(&task1, 0, 4,70);
 	/* one-shot task */
 	add_task(&task2, 50, 10,70);
 	add_task(&task3, 25, 5,70);
 	add_task(&task4, 30, 15,70);
-	while (1) {
-		//Sched_Dispatch();
-	}
+	rtos_init(idle_task, 70);
 }
 
 

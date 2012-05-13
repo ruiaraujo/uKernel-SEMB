@@ -19,6 +19,7 @@
  */
 #include "scheduler.h"
 #include <avr/interrupt.h>
+#include <avr/sleep.h>
 #include <stdlib.h>
 
 static uint16_t tick_counter = 0;
@@ -44,7 +45,7 @@ task_t * current_task;
 task_t * first_task;
 task_t * idle_task;
 
-void rtos_init(void){
+void rtos_init(void (*idle)(void),uint16_t stack_len){
 /* - Configura interrupção
 * que periodicamente
 * corre Sched_Schedule().
@@ -53,7 +54,8 @@ void rtos_init(void){
 * resolusão do relógio.
 * (Hardware specific!)
 */
-
+    set_sleep_mode(SLEEP_MODE_IDLE);
+	add_task(idle,0,0,stack_len);
 	__asm__ volatile ("rjmp switch_task\n" ::);
 };
 
@@ -96,6 +98,13 @@ int add_task(void (*f)(void),uint16_t delay, uint8_t priority, uint16_t stack_le
 	temp->next_task = new_task;
 	return 0;
 }
+
+void sleep(uint16_t ticks){
+	current_task->delay = ticks;
+	current_task->state = TASK_BLOCKED;
+	yield();
+}
+
 
 void yield() { /*  __attribute__ ((naked)) */
 	save_cpu_context();

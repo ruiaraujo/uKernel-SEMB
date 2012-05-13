@@ -63,7 +63,13 @@ uint16_t get_tick_counter(void);
 
 int add_task(void (*f)(void),uint16_t delay, uint8_t prority, uint16_t stack_len );
 void yield(void) __attribute__ ((naked));
-void rtos_init(void);
+
+/**
+ * This function will allows a task to sleep for a number of ticks.
+ */
+void sleep(uint16_t ticks);
+
+void rtos_init(void (*idle)(void),uint16_t stack_len);
 
 
 /**
