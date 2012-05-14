@@ -39,20 +39,10 @@ void task4(void) {
 	bit_set(PORTC, 3);
 	_delay_ms(300 /*- (rand()>>2)*/);
 	bit_clear(PORTC, 3);
+	_delay_ms(300 /*- (rand()>>2)*/);
 }
 
-ISR(TIMER0_OVF_vect) {
-//This is the interrupt service routine for TIMER0 OVERFLOW Interrupt.
-//CPU automatically call this when TIMER0 overflows.
-//Increment our variable
 
-
-/*count++;
-if(count==61) {
-PORTC=~PORTC; //Invert the Value of PORTC
-count=0;
-}*/
-}
 
 // This is our idle task - the task that runs when all others are suspended.
 // We sleep the CPU - the CPU will automatically awake when the tick interrupt occurs
@@ -84,6 +74,7 @@ int main (void) {
 	//add_task(&task3, 25, 5,70);
 	//add_task(&task4, 30, 15,70);
 	rtos_init(idle_task, 70,70);
+	return 0;
 }
 
 

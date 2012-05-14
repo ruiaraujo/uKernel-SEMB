@@ -27,6 +27,13 @@
  */
 #define TASK_CAN_RUN(x) ((x) & 0x03)!=0
 
+
+struct {
+	uint8_t * system_stack;
+	task_t * current_task;
+	task_t * first_task;
+} kernel;
+
 static uint16_t tick_counter = 0;
 
 void task_starter(void) __attribute__ ((naked));
@@ -34,6 +41,21 @@ void task_starter(void) __attribute__ ((naked));
 // The all-important task switch function
 void switch_task() __attribute__ ((naked));
 
+ISR(TIMER0_OVF_vect) {
+//This is the interrupt service routine for TIMER0 OVERFLOW Interrupt.
+//CPU automatically call this when TIMER0 overflows.
+//Increment our variable
+	kernel.current_task->stack = (uint8_t*)SP;
+	SP = (uint16_t)kernel.system_stack;
+	increase_tick_counter() ;
+	
+	
+/*count++;
+if(count==61) {
+PORTC=~PORTC; //Invert the Value of PORTC
+count=0;
+}*/
+}
 
 void increase_tick_counter(void){
 	sei();
@@ -46,11 +68,6 @@ uint16_t get_tick_counter(void){
 }
 
 
-struct {
-	uint8_t * system_stack;
-	task_t * current_task;
-	task_t * first_task;
-} kernel;
 
 void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system ){
     set_sleep_mode(SLEEP_MODE_IDLE);
@@ -72,7 +89,7 @@ int add_task(void (*f)(void),uint16_t delay, uint8_t priority, uint16_t stack_le
 	if ( new_task == NULL )
 		return NO_MEMORY;
 	new_task->bottom_stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
-	if (  new_task->stack == NULL)
+	if (  new_task->bottom_stack == NULL)
 	{
 		free(new_task);
 		return NO_MEMORY;
