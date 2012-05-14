@@ -69,20 +69,19 @@ int add_task(void (*f)(void),uint16_t delay, uint8_t priority, uint16_t stack_le
 	new_task = ( task_t * ) malloc(sizeof(task_t));
 	if ( new_task == NULL )
 		return NO_MEMORY;
-	new_task->stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
+	new_task->bottom_stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
 	if (  new_task->stack == NULL)
 	{
 		free(new_task);
 		return NO_MEMORY;
 	}
 	// This can be used to detect stack overflows.
-	new_task->bottom_stack = new_task->stack + sizeof(uint8_t)*stack_len;
-	new_task->current_stack = new_task->stack;
+	new_task->stack = new_task->bottom_stack + sizeof(uint8_t)*stack_len-1;
 
 	// To jump start the task.
 	// we use another function with no arguments.
- 	*((new_task->current_stack)--) = (((uint16_t)task_starter) & 0xFF);
-	*((new_task->current_stack)--) = (((uint16_t)task_starter) >> 8) & 0xFF;
+ 	*((new_task->stack)--) = ((uint16_t)task_starter) & 0xFF;
+	*((new_task->stack)--) = (((uint16_t)task_starter) >> 8) & 0xFF;
 	new_task->priority = priority;
 	new_task->delay = delay;
 	new_task->func = f;
@@ -108,7 +107,7 @@ void sleep(uint16_t ticks){
 
 void yield() { /*  __attribute__ ((naked)) */
 	save_cpu_context();
-	current_task->current_stack = (uint8_t *)SP;
+	current_task->stack = (uint8_t*)SP;
 	__asm__ volatile ("rjmp switch_task\n" ::);
 }
 
@@ -134,7 +133,7 @@ void switch_task()  /*__attribute__ ((naked))*/{
 		current_task = idle_task;
 	else
 		current_task = selected_task;
-	SP = (uint16_t) current_task->current_stack;
+	SP = (uint16_t)current_task->stack;
 	state = current_task->state;
 	if ( state != TASK_STARTING )
 		restore_cpu_context(); // The task has previously saved its context onto its stack

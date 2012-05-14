@@ -19,25 +19,25 @@ volatile uint8_t count;
 /* C = [12 .. 20] ms */
 void task1(void) {
 	bit_set(PORTC, 0);
-	_delay_ms(20/*- (rand()>>5)*/);
+	_delay_ms(100/*- (rand()>>5)*/);
 	bit_clear(PORTC, 0);
 }
 /* C = [7 .. 7] ms */
 void task2(void) {
 	bit_set(PORTC, 1);
-	_delay_ms(7);
+	_delay_ms(100);
 	bit_clear(PORTC, 1);
 }
 /* C = [34 .. 50] ms */
 void task3(void) {
 	bit_set(PORTC, 2);
-	_delay_ms(50/* - (rand()>>4)*/);
+	_delay_ms(250/* - (rand()>>4)*/);
 	bit_clear(PORTC, 2);
 }
 /* C = [36 .. 100] ms */
 void task4(void) {
 	bit_set(PORTC, 3);
-	_delay_ms(100 /*- (rand()>>2)*/);
+	_delay_ms(300 /*- (rand()>>2)*/);
 	bit_clear(PORTC, 3);
 }
 

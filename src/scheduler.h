@@ -44,11 +44,8 @@ typedef struct task_t{
 	/* task state */
 	uint8_t state;
 
-	/* beginning stack pointer*/
+	/* current stack pointer*/
 	uint8_t * stack;
-
-	/* currnt stack pointer*/
-	uint8_t * current_stack;
 
 	/* Maximum top for the stack, will help to detect stack overflows */
 	uint8_t * bottom_stack;
