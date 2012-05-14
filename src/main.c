@@ -15,31 +15,43 @@ unsigned char rand() {
 	seed = 181 * seed + 359 ;
 	return (seed >> 8);
 }
-volatile uint8_t count;
 /* C = [12 .. 20] ms */
 void task1(void) {
-	bit_set(PORTC, 0);
-	_delay_ms(100/*- (rand()>>5)*/);
-	bit_clear(PORTC, 0);
+	while (1){
+		bit_set(PORTC, 0);
+		_delay_ms(100/*- (rand()>>5)*/);
+		bit_clear(PORTC, 0);
+		_delay_ms(100);
+	}
 }
 /* C = [7 .. 7] ms */
 void task2(void) {
-	bit_set(PORTC, 1);
-	_delay_ms(100);
-	bit_clear(PORTC, 1);
+	while (1){
+		bit_set(PORTC, 1);
+		_delay_ms(100);
+		bit_clear(PORTC, 1);
+		_delay_ms(100);
+	}
 }
 /* C = [34 .. 50] ms */
 void task3(void) {
-	bit_set(PORTC, 2);
-	_delay_ms(250/* - (rand()>>4)*/);
-	bit_clear(PORTC, 2);
+	while (1){
+		bit_set(PORTC, 2);
+		_delay_ms(250/* - (rand()>>4)*/);
+		bit_clear(PORTC, 2);
+		_delay_ms(250);
+	}
 }
+
 /* C = [36 .. 100] ms */
 void task4(void) {
-	bit_set(PORTC, 3);
-	_delay_ms(300 /*- (rand()>>2)*/);
-	bit_clear(PORTC, 3);
-	_delay_ms(300 /*- (rand()>>2)*/);
+	while (1){
+		bit_set(PORTC, 3);
+		_delay_ms(300 /*- (rand()>>2)*/);
+		bit_clear(PORTC, 3);
+		_delay_ms(300 /*- (rand()>>2)*/);
+		sleep(1);
+	}
 }
 
 
@@ -60,7 +72,6 @@ int main (void) {
 	TCCR0|=(uint8_t)(1<<CS02)|(1<<CS00); // Prescaler = FCPU/1024
 	TIMSK|=(uint8_t)(1<<TOIE0); //Enable Overflow Interrupt Enable
 	TCNT0=(uint8_t)0; //Initialize Timer Counter
-	count=(uint8_t)0; //Initialize our variable
 	DDRC|=(uint8_t)0x0F; //Port C[3,2,1,0] as output
 	PORTB = (uint8_t)0x03; //activate pull-ups on PB0 e PB1
 	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
@@ -70,9 +81,9 @@ int main (void) {
 	/* periodic task */
 	add_task(&task1, 0, 4,70);
 	/* one-shot task */
-	//add_task(&task2, 50, 10,70);
-	//add_task(&task3, 25, 5,70);
-	//add_task(&task4, 30, 15,70);
+	add_task(&task2, 50, 10,70);
+	add_task(&task3, 25, 5,70);
+	add_task(&task4, 30, 15,70);
 	rtos_init(idle_task, 70,70);
 	return 0;
 }

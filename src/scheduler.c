@@ -129,8 +129,8 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	register task_t * selected_task asm ("r20");
 	register task_t * c_task asm ("r22");
 	max_priority = 0;
-	c_task = kernel.first_task;
-	if (kernel.current_task != NULL )
+	selected_task = c_task = kernel.first_task;
+	if (kernel.current_task != NULL && TASK_CAN_RUN(kernel.current_task->state) )
 		kernel.current_task->state = TASK_READY;
 	while ( c_task != NULL ){
 		state = c_task->state;
