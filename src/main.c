@@ -80,10 +80,10 @@ int main (void) {
 	/* periodic task */
 	add_task(&task1, 0, 4,70);
 	/* one-shot task */
-	add_task(&task2, 50, 10,70);
-	add_task(&task3, 25, 5,70);
-	add_task(&task4, 30, 15,70);
-	rtos_init(idle_task, 70);
+	//add_task(&task2, 50, 10,70);
+	//add_task(&task3, 25, 5,70);
+	//add_task(&task4, 30, 15,70);
+	rtos_init(idle_task, 70,70);
 }
 
 

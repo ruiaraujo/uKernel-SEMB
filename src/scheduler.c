@@ -22,6 +22,11 @@
 #include <avr/sleep.h>
 #include <stdlib.h>
 
+/**
+ * We take advantage of the distribution of the state codes.
+ */
+#define TASK_CAN_RUN(x) ((x) & 0x03)!=0
+
 static uint16_t tick_counter = 0;
 
 void task_starter(void) __attribute__ ((naked));
@@ -41,31 +46,28 @@ uint16_t get_tick_counter(void){
 }
 
 
-task_t * current_task;
-task_t * first_task;
-task_t * idle_task;
+struct {
+	uint8_t * system_stack;
+	task_t * current_task;
+	task_t * first_task;
+} kernel;
 
-void rtos_init(void (*idle)(void),uint16_t stack_len){
-/* - Configura interrupção
-* que periodicamente
-* corre Sched_Schedule().
-* P periodo da
-* interrupção define a
-* resolusão do relógio.
-* (Hardware specific!)
-*/
+void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system ){
     set_sleep_mode(SLEEP_MODE_IDLE);
+    kernel.system_stack = ( uint8_t * )malloc( sizeof(uint8_t)*system ) + system - 1;
 	add_task(idle,0,0,stack_len);
+	SP = (uint16_t)kernel.system_stack;
 	__asm__ volatile ("rjmp switch_task\n" ::);
 };
 
+//Trick to start tasks.
 void task_starter(void){
-	current_task->func();
+	kernel.current_task->func();
 }
 
 
 int add_task(void (*f)(void),uint16_t delay, uint8_t priority, uint16_t stack_len ){
-	task_t * new_task,* temp;
+	task_t * new_task;
 	new_task = ( task_t * ) malloc(sizeof(task_t));
 	if ( new_task == NULL )
 		return NO_MEMORY;
@@ -86,28 +88,21 @@ int add_task(void (*f)(void),uint16_t delay, uint8_t priority, uint16_t stack_le
 	new_task->delay = delay;
 	new_task->func = f;
 	new_task->state = TASK_STARTING;
-	if ( first_task == NULL )
-	{
-		first_task = new_task;
-		return 0;
-	}
-	temp = first_task;
-	while ( temp->next_task != NULL )
-		temp = temp->next_task;
-	temp->next_task = new_task;
+	new_task->next_task = kernel.first_task;
+	kernel.first_task = new_task;
 	return 0;
 }
 
 void sleep(uint16_t ticks){
-	current_task->delay = ticks;
-	current_task->state = TASK_BLOCKED;
+	kernel.current_task->delay = ticks;
+	kernel.current_task->state = TASK_BLOCKED;
 	yield();
 }
 
 
 void yield() { /*  __attribute__ ((naked)) */
 	save_cpu_context();
-	current_task->stack = (uint8_t*)SP;
+	kernel.current_task->stack = (uint8_t*)SP;
 	__asm__ volatile ("rjmp switch_task\n" ::);
 }
 
@@ -117,24 +112,21 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	register task_t * selected_task asm ("r20");
 	register task_t * c_task asm ("r22");
 	max_priority = 0;
-	c_task = first_task;
-	if ( current_task != NULL )
-		current_task->state = TASK_READY;
+	c_task = kernel.first_task;
+	if (kernel.current_task != NULL )
+		kernel.current_task->state = TASK_READY;
 	while ( c_task != NULL ){
-		state = c_task->state & 0x03;
-		if ( c_task->priority > max_priority && state != 0 )
+		state = c_task->state;
+		if ( c_task->priority > max_priority && TASK_CAN_RUN(state) )
 		{
 			selected_task = c_task;
 			max_priority = c_task->priority;
 		}
 		c_task = c_task->next_task;
 	}
-	if ( selected_task == NULL )
-		current_task = idle_task;
-	else
-		current_task = selected_task;
-	SP = (uint16_t)current_task->stack;
-	state = current_task->state;
+	kernel.current_task = selected_task;
+	SP = (uint16_t)kernel.current_task->stack;
+	state = kernel.current_task->state;
 	if ( state != TASK_STARTING )
 		restore_cpu_context(); // The task has previously saved its context onto its stack
 	selected_task->state = TASK_RUNNING;

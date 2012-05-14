@@ -66,7 +66,7 @@ void yield(void) __attribute__ ((naked));
  */
 void sleep(uint16_t ticks);
 
-void rtos_init(void (*idle)(void),uint16_t stack_len);
+void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system);
 
 
 /**
