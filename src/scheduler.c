@@ -25,14 +25,14 @@
 /**
  * We take advantage of the distribution of the state codes.
  */
-#define TASK_CAN_RUN(x) ((x) & 0x03)!=0
+#define TASK_CAN_RUN(x) (((x) & 0x03)!=0)
 
 
-struct {
+struct kernel{
 	uint8_t * system_stack;
 	task_t * current_task;
 	task_t * first_task;
-} kernel;
+} kernel = { .system_stack = NULL, .current_task = NULL, .first_task = NULL };
 
 static uint16_t tick_counter = 0;
 
@@ -40,27 +40,47 @@ void task_starter(void) __attribute__ ((naked));
 
 // The all-important task switch function
 void switch_task() __attribute__ ((naked));
+void reduce_delays(void);
 
-ISR(TIMER0_OVF_vect) {
+
 //This is the interrupt service routine for TIMER0 OVERFLOW Interrupt.
 //CPU automatically call this when TIMER0 overflows.
-//Increment our variable
-	kernel.current_task->stack = (uint8_t*)SP;
+void TIMER0_OVF_vect(void) __attribute__ ((signal,naked,__INTR_ATTRS));
+void TIMER0_OVF_vect(void) {
+	save_cpu_context();
+	kernel.current_task->stack = (uint8_t*)SP; //saving current task stack
 	SP = (uint16_t)kernel.system_stack;
-	increase_tick_counter() ;
+	increase_tick_counter();
+	reduce_delays();
+	SP = (uint16_t)kernel.current_task->stack;
+	__asm__ volatile ("rjmp switch_task\n" ::); //stack will be restored here.
 	
-	
-/*count++;
-if(count==61) {
-PORTC=~PORTC; //Invert the Value of PORTC
-count=0;
-}*/
+}
+
+void reduce_delays(void){
+	task_t * task = kernel.first_task;
+	while ( task != NULL )
+	{
+		if ( !TASK_CAN_RUN(task->state) )
+		{
+			if ( task->delay != 0 )
+				task->delay--;
+			else
+			{
+				if ( task->state ==  TASK_DELAYED )
+					task->state = TASK_STARTING;
+				else
+					task->state = TASK_READY;
+			}
+		}
+		task = task->next_task;
+	}
 }
 
 void increase_tick_counter(void){
-	sei();
-	tick_counter++; //multi byte variable. disabling interrupts while accessing
 	cli();
+	tick_counter++; //multi byte variable. disabling interrupts while accessing
+	sei();
 }
 
 uint16_t get_tick_counter(void){
@@ -74,6 +94,7 @@ void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system ){
     kernel.system_stack = ( uint8_t * )malloc( sizeof(uint8_t)*system ) + system - 1;
 	add_task(idle,0,0,stack_len);
 	SP = (uint16_t)kernel.system_stack;
+	sei();
 	__asm__ volatile ("rjmp switch_task\n" ::);
 };
 
@@ -104,7 +125,10 @@ int add_task(void (*f)(void),uint16_t delay, uint8_t priority, uint16_t stack_le
 	new_task->priority = priority;
 	new_task->delay = delay;
 	new_task->func = f;
-	new_task->state = TASK_STARTING;
+	if ( delay == 0 )
+		new_task->state = TASK_STARTING;
+	else
+		new_task->state = TASK_DELAYED;
 	new_task->next_task = kernel.first_task;
 	kernel.first_task = new_task;
 	return 0;
@@ -129,6 +153,7 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	register task_t * selected_task asm ("r20");
 	register task_t * c_task asm ("r22");
 	max_priority = 0;
+	cli();
 	selected_task = c_task = kernel.first_task;
 	if (kernel.current_task != NULL && TASK_CAN_RUN(kernel.current_task->state) )
 		kernel.current_task->state = TASK_READY;
@@ -143,10 +168,14 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	}
 	kernel.current_task = selected_task;
 	SP = (uint16_t)kernel.current_task->stack;
-	state = kernel.current_task->state;
-	if ( state != TASK_STARTING )
+	if ( kernel.current_task->state != TASK_STARTING )
+	{
+		kernel.current_task->state = TASK_RUNNING; //we need to do this before the cpu context restore.
 		restore_cpu_context(); // The task has previously saved its context onto its stack
-	selected_task->state = TASK_RUNNING;
+	}
+	else
+		kernel.current_task->state = TASK_RUNNING;
+	sei();
 	__asm__ volatile ("ret\n" ::);
 }
 

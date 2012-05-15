@@ -30,7 +30,8 @@
 #define TASK_RUNNING 0x02
 #define TASK_READY 0x03
 #define TASK_BLOCKED 0x10
-#define TASK_STOPPED 0x20
+#define TASK_DELAYED 0x20
+#define TASK_STOPPED 0x30
 #define NO_MEMORY 1
 
 
@@ -70,8 +71,8 @@ void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system);
 
 
 /**
- * These two macros were copy from YAVRTOS (see http://www.chris.obyrne.com/yavrtos/)
- * \brief \internal Save the CPU context to the stack, and disable interrupts
+ * These are macros used by GCC when switching to ISR
+ * Save the CPU context to the stack, and disable interrupts
  */
 #define save_cpu_context() __asm__ volatile( \
 		"push  r0\n in r0, 0x3f\n cli\n" \
@@ -82,7 +83,7 @@ void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system);
 		"push  r0\n" ::)
 
 /**
- * \brief \internal Restore the CPU context from the stack, possibly re-enabling interrupts
+ * Restore the CPU context from the stack, possibly re-enabling interrupts
  */
 #define restore_cpu_context() __asm__ volatile ( \
 		"pop r0\n" \

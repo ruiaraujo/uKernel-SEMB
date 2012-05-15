@@ -5,7 +5,6 @@
 #include <avr/sleep.h>
 #include <util/delay.h> 
 #include "bit_tools.h" 
-#include "printf_tools.h"
 #include "scheduler.h"
 
 
@@ -31,6 +30,7 @@ void task2(void) {
 		_delay_ms(100);
 		bit_clear(PORTC, 1);
 		_delay_ms(100);
+		sleep(10);
 	}
 }
 /* C = [34 .. 50] ms */
@@ -40,6 +40,7 @@ void task3(void) {
 		_delay_ms(250/* - (rand()>>4)*/);
 		bit_clear(PORTC, 2);
 		_delay_ms(250);
+		sleep(50);
 	}
 }
 
@@ -50,7 +51,7 @@ void task4(void) {
 		_delay_ms(300 /*- (rand()>>2)*/);
 		bit_clear(PORTC, 3);
 		_delay_ms(300 /*- (rand()>>2)*/);
-		sleep(1);
+		sleep(50);
 	}
 }
 
@@ -77,7 +78,6 @@ int main (void) {
 	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
 	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
     cli();
-	init_printf_tools();
 	/* periodic task */
 	add_task(&task1, 0, 4,70);
 	/* one-shot task */

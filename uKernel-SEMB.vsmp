@@ -10,7 +10,7 @@
   <FILE GROUP="Design Files" NAME="atmega8.DSN"/>
  </FILES>
  <CONFIGURATION TARGET="Debug" COMPILER="WinAVR" NAME="Debug">
-  <CONTROLLER FAMILY="AVR" CLOCK="14.7456MHz" TYPE="ATmega8"/>
+  <CONTROLLER FAMILY="AVR" CLOCK="14745600Hz" TYPE="ATmega8"/>
   <FILE TOOL="LD" NAME="Debug/Debug.elf">
    <FILE TOOL="CC" NAME="Debug/main.o">
     <FILE NAME="src/main.c"/>
@@ -24,13 +24,13 @@
   <FILE NAME="src/scheduler.h"/>
   <FILE NAME="atmega8.DSN"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
-  <OPTION DEFAULT="1" TOOL="CC" NAME="-W" VALUE="all"/>
-  <OPTION DEFAULT="1" TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
-  <OPTION DEFAULT="1" TOOL="CC" NAME="-f" VALUE="signed-char"/>
+  <OPTION TOOL="CC" NAME="-W" VALUE="all"/>
+  <OPTION TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
+  <OPTION TOOL="CC" NAME="-f" VALUE="signed-char"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-MD"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-MP"/>
-  <OPTION DEFAULT="1" TOOL="CC" NAME="-D" VALUE="F_CPU=%CLOCK%"/>
-  <OPTION DEFAULT="1" TOOL="CC" NAME="-O" VALUE="1"/>
+  <OPTION TOOL="CC" NAME="-D" VALUE="F_CPU=%CLOCK%"/>
+  <OPTION TOOL="CC" NAME="-O" VALUE="s"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-mmcu=" VALUE="atmega8"/>
  </CONFIGURATION>
  <CONFIGURATION TARGET="Release" COMPILER="WinAVR" NAME="Release">
