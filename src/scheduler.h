@@ -71,7 +71,6 @@ struct kernel{
 	task_t * current_task;
 	task_t * first_task;
 	uint8_t switch_active;
-//	uint16_t millis_per_tick;
 };
 
 extern struct kernel kernel;
@@ -91,8 +90,11 @@ void sleep_ticks(uint16_t ticks);
 
 #define sleep_millis(millis) sleep_ticks(millis/*/kernel.millis_per_tick*/)
 
-void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
-
+#if USE_DEAFAULT_IDLE
+	void rtos_init(uint16_t system);
+#else
+	void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
+#endif
 
 /**
  * These are macros used by GCC when switching to ISR
@@ -120,7 +122,6 @@ void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
  * AVR GCC ISR macro would crash the system. Built a new one compatible 
  */
 #undef ISR
-#warning ISR redefined please check documentation
 #define ISR(vector, function) void vector(void) __attribute__ ((signal,naked,__INTR_ATTRS));\
 	void vector(void) {\
 		save_cpu_context();\

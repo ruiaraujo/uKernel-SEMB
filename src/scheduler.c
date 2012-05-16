@@ -80,14 +80,17 @@ uint16_t get_tick_counter(void){
 
 void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
     set_sleep_mode(SLEEP_MODE_IDLE);
-	//kernel.millis_per_tick = (uint32_t)(( 0x000000FF - (uint32_t)TCNT0 ));
-	//kernel.millis_per_tick /=F_CPU;
     kernel.system_stack = ( uint8_t * )malloc( sizeof(uint8_t)*system ) + system - 1;
 	add_task(idle,NULL,0,0,stack_len);
 	SP = (uint16_t)kernel.system_stack;
 	sei();
 	__asm__ volatile ("rjmp switch_task\n" ::);
 };
+
+
+void rtos_init(uint16_t system){
+	rtos_init(  )
+}
 
 /*Trick to start tasks.
 */

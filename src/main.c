@@ -51,18 +51,6 @@ void task4(void * init) {
 }
 
 
-
-// This is our idle task - the task that runs when all others are suspended.
-// We sleep the CPU - the CPU will automatically awake when the tick interrupt occurs
-void idle_task(void * data ) {
-	while (1)
-	{
-		sleep_enable();
-        sei();
-        sleep_cpu();
-	}
-}
-
 int main (void) {
 	
 	TCCR0|=(uint8_t)(1<<CS02)|(1<<CS00); // Prescaler = FCPU/1024
@@ -79,7 +67,7 @@ int main (void) {
 	add_task(&task2,NULL, 50, 10,70);
 	add_task(&task3,NULL, 25, 5,70);
 	add_task(&task4,NULL, 30, 15,70);
-	rtos_init(idle_task, 70,70);
+	rtos_init(70);
 	return 0;
 }
 
