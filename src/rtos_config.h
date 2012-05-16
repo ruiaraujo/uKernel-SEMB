@@ -25,6 +25,20 @@
 
 #define USE_SEMAPHORES 1
 
-#define USE_DEAFAULT_IDLE 1
+/* With this active there is no need to define an idle task*/
+#define USE_DEFAULT_IDLE 1
+
+#define TEST_STACK_OVERFLOW 0
+#define ACTION_IN_STACK_OVERFLOW PORTC = 0xFF;
+#if TEST_STACK_OVERFLOW
+	#ifndef ACTION_IN_STACK_OVERFLOW
+		#error An action must be specified when detecting stack overflow
+	#endif
+#endif
+
+
+#if USE_DEFAULT_IDLE
+#include "default_idle.h"
+#endif
 
 #endif /* RTOS_CONFIG_H_ */

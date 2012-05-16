@@ -58,7 +58,15 @@ void reduce_delays(void){
 			}
 		}
 		task = task->next_task;
-	}
+	}	
+	#if TEST_STACK_OVERFLOW
+		if ( kernel.current_task->stack < kernel.current_task->bottom_stack )
+		{
+			cli();
+			ACTION_IN_STACK_OVERFLOW;
+			while (1);
+		}
+	#endif
 }
 
 
@@ -77,7 +85,10 @@ uint16_t get_tick_counter(void){
 }
 
 
-
+#undef rtos_init 
+/* rtos_init can be a macro in case that USE_DEFAULT_IDLE == 1
+ * so we undef it here.
+ */
 void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
     set_sleep_mode(SLEEP_MODE_IDLE);
     kernel.system_stack = ( uint8_t * )malloc( sizeof(uint8_t)*system ) + system - 1;
@@ -87,10 +98,6 @@ void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
 	__asm__ volatile ("rjmp switch_task\n" ::);
 };
 
-
-void rtos_init(uint16_t system){
-	rtos_init(  )
-}
 
 /*Trick to start tasks.
 */

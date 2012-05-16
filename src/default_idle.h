@@ -20,22 +20,11 @@
 #ifndef DEFAULT_IDLE_H_
 #define DEFAULT_IDLE_H_
 
-#include "rtos_config.h"
-
-#if USE_DEAFAULT_IDLE
 // This is our idle task - the task that runs when all others are suspended.
 // We sleep the CPU - the CPU will automatically awake when the tick interrupt occurs
-void idle_task(void * data ) {
-	while (1)
-	{
-		sleep_enable();
-        sei();
-        sleep_cpu();
-	}
-}
+void idle_task(void * data );
 
 #define IDLE_STACK_SIZE 50
 
-#endif
 
 #endif /* DEFAULT_IDLE_H_ */

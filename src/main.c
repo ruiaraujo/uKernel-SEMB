@@ -1,4 +1,22 @@
-
+/*
+ * Copyright (C) 2012 Rui Araújo, Ricardo Lopes and Pedro Silva
+ *
+ * This file is part of uKernel-SEMB (see https://github.com/ruiaraujo/uKernel-SEMB)
+ *
+ * uKernel-SEMB is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * uKernel-SEMB is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with uKernel-SEMB.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 
 #include <avr/io.h> 
 #include <avr/interrupt.h>
@@ -7,6 +25,10 @@
 #include "bit_tools.h" 
 #include "scheduler.h"
 #include <stdlib.h>
+
+/*
+ * This file is an example of what could be done with this pico real time kernel.
+ */
 
 
 /* C = [12 .. 20] ms */
@@ -62,11 +84,11 @@ int main (void) {
 	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
     cli();
 	/* periodic task */
-	add_task(&task1,NULL, 0, 4,70);
+	add_task(&task1,NULL, 0, 4,38);
 	/* one-shot task */
-	add_task(&task2,NULL, 50, 10,70);
-	add_task(&task3,NULL, 25, 5,70);
-	add_task(&task4,NULL, 30, 15,70);
+	add_task(&task2,NULL, 50, 10,40);
+	add_task(&task3,NULL, 25, 5,40);
+	add_task(&task4,NULL, 30, 15,40);
 	rtos_init(70);
 	return 0;
 }

@@ -79,6 +79,9 @@ void increase_tick_counter(void);
 
 uint16_t get_tick_counter(void);
 
+/*
+ * stack_len should be bigger than 38 as this is the minimum size for any task's stack.
+ */
 int add_task(void (*f)(void *),void * init_data, uint16_t delay, uint8_t prority, uint16_t stack_len );
 
 void yield(void) /*__attribute__ ((naked))*/;
@@ -90,10 +93,10 @@ void sleep_ticks(uint16_t ticks);
 
 #define sleep_millis(millis) sleep_ticks(millis/*/kernel.millis_per_tick*/)
 
-#if USE_DEAFAULT_IDLE
-	void rtos_init(uint16_t system);
-#else
-	void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
+void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
+#if USE_DEFAULT_IDLE
+	#undef rtos_init
+	#define rtos_init(system) rtos_init(idle_task,IDLE_STACK_SIZE,system)
 #endif
 
 /**
