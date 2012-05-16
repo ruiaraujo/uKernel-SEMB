@@ -8,6 +8,7 @@
   <FILE GROUP="Source Files" NAME="src/scheduler.c"/>
   <FILE GROUP="Header Files" NAME="src/scheduler.h"/>
   <FILE GROUP="Design Files" NAME="atmega8.DSN"/>
+  <FILE GROUP="Header Files" NAME="src/rtos_config.h"/>
  </FILES>
  <CONFIGURATION TARGET="Debug" COMPILER="WinAVR" NAME="Debug">
   <CONTROLLER FAMILY="AVR" CLOCK="14745600Hz" TYPE="ATmega8"/>
@@ -23,6 +24,7 @@
   <FILE NAME="src/printf_tools.h"/>
   <FILE NAME="src/scheduler.h"/>
   <FILE NAME="atmega8.DSN"/>
+  <FILE NAME="src/rtos_config.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
@@ -47,6 +49,7 @@
   <FILE NAME="src/printf_tools.h"/>
   <FILE NAME="src/scheduler.h"/>
   <FILE NAME="atmega8.DSN"/>
+  <FILE NAME="src/rtos_config.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-g" VALUE="dwarf-2"/>

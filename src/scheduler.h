@@ -18,9 +18,14 @@
  *
  */
 #include <stdint.h>
+#include "rtos_config.h"
 
-#ifndef SCHEUDLER_H_
-#define SCHEUDLER_H_
+#include <avr/interrupt.h>
+#ifndef SCHEDULER_H_
+#define SCHEDULER_H_
+
+#define GET_INTERRUPTS (SREG & _BV(SREG_I))
+#define RESTORE_INTERRUPTS(x) if(x) __asm__ volatile ("sei\n" ::);else __asm__ volatile ("cli\n" ::);
 
 /*
  * It is important to keep these defines as they are because we take advantage of that
@@ -41,7 +46,11 @@ typedef struct task_t{
 	/* ticks to execute TODO:later*/
 	uint16_t delay;
 	/* function pointer */
-	void (*func)(void );
+	void (*func)(void *);
+
+	/*  the init data passed to the task*/
+	void * init_data;
+	
 	/* task state */
 	uint8_t state;
 
@@ -55,19 +64,32 @@ typedef struct task_t{
 	struct task_t * next_task;
 } task_t;
 
+struct kernel{
+	uint8_t * system_stack;
+	task_t * current_task;
+	task_t * first_task;
+	uint8_t switch_active;
+//	uint16_t millis_per_tick;
+};
+
+extern struct kernel kernel;
+
 void increase_tick_counter(void);
 
 uint16_t get_tick_counter(void);
 
-int add_task(void (*f)(void),uint16_t delay, uint8_t prority, uint16_t stack_len );
-void yield(void) __attribute__ ((naked));
+int add_task(void (*f)(void *),void * init_data, uint16_t delay, uint8_t prority, uint16_t stack_len );
+
+void yield(void) /*__attribute__ ((naked))*/;
 
 /**
  * This function will allows a task to sleep for a number of ticks.
  */
-void sleep(uint16_t ticks);
+void sleep_ticks(uint16_t ticks);
 
-void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system);
+#define sleep_millis(millis) sleep_ticks(millis/*/kernel.millis_per_tick*/)
+
+void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
 
 
 /**
@@ -92,5 +114,28 @@ void rtos_init(void (*idle)(void),uint16_t stack_len,uint16_t system);
 		"pop r15\n pop r14\n pop r13\n pop r12\n pop r11\n pop r10\n pop  r9\n pop  r8\n" \
 		"pop  r7\n pop  r6\n pop  r5\n pop  r4\n pop  r3\n pop  r2\n pop  r1\n out 0x3f, r0\n pop  r0\n" ::)
 
+/*
+ * AVR GCC ISR macro would crash the system. Built a new one compatible 
+ */
+#undef ISR
+#warning ISR redefined please check documentation
+#define ISR(vector, function) void vector(void) __attribute__ ((signal,naked,__INTR_ATTRS));\
+	void vector(void) {\
+		save_cpu_context();\
+		if ( !kernel.switch_active )\
+		{	\
+			*(((uint8_t*)SP)+1) |= _BV(SREG_I); \
+			kernel.current_task->stack = (uint8_t*)SP; \
+			SP = (uint16_t)kernel.system_stack;\
+		}\
+		function;\
+		if ( !kernel.switch_active )\
+		{\
+			SP = (uint16_t)kernel.current_task->stack;\
+			__asm__ volatile ("rjmp switch_task\n" ::);\
+		}\
+		restore_cpu_context();\
+		__asm__ volatile ("reti\n" ::); \
+	}
 
 #endif
