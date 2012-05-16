@@ -43,8 +43,10 @@
 typedef struct task_t{
 	/* period in ticks */
 	uint8_t priority;
-	/* ticks to execute TODO:later*/
+
+	/* ticks to execute*/
 	uint16_t delay;
+
 	/* function pointer */
 	void (*func)(void *);
 
@@ -60,7 +62,7 @@ typedef struct task_t{
 	/* Maximum top for the stack, will help to detect stack overflows */
 	uint8_t * bottom_stack;
 
-	/**/
+	/* Pointer to the next task*/
 	struct task_t * next_task;
 } task_t;
 
