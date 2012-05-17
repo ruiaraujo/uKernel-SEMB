@@ -145,6 +145,7 @@ int stop_task(task_t * task){
 		task_stopper(); // it won't return.
 	if ( task->priority > kernel.current_task->priority || task->priority  == 0	)
 		return NO_PERMISSIONS;
+	task->state = TASK_STOPPING;
  	*((task->stack)--) = ((uint16_t)task_stopper) & 0xFF;
 	*((task->stack)--) = (((uint16_t)task_stopper) >> 8) & 0xFF;
 	return OK;
@@ -249,16 +250,15 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	kernel.current_task = selected_task;
 	SP = (uint16_t)kernel.current_task->stack;
 
-	if ( kernel.current_task->state != TASK_STARTING )
-	{
-		kernel.current_task->state = TASK_RUNNING;
-		restore_cpu_context(); // The task has previously saved its context onto its stack
-	}
-	else
+	if ( kernel.current_task->state == TASK_STARTING )
 	{
 		kernel.current_task->state = TASK_RUNNING;
 		__asm__ volatile ("pop r25\npop r24\n" ::);
-		sei();
+	}
+	else if ( kernel.current_task->state != TASK_STOPPING ) // when stopping we don't need to context
+	{
+		kernel.current_task->state = TASK_RUNNING;
+		restore_cpu_context(); // The task has previously saved its context onto its stack
 	}
 	kernel.switch_active = 0;
 	__asm__ volatile ("ret\n" ::);
