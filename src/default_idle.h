@@ -22,7 +22,7 @@
 
 // This is our idle task - the task that runs when all others are suspended.
 // We sleep the CPU - the CPU will automatically awake when the tick interrupt occurs
-void idle_task(void * data );
+void __internal_idle_task(void * data );
 
 #define IDLE_STACK_SIZE 50
 

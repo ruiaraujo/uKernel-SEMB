@@ -26,7 +26,7 @@
 /**
  * We take advantage of the distribution of the state codes.
  */
-#define TASK_CAN_RUN(x) (((x) & 0x03)!=0)
+#define TASK_CAN_RUN(x) (((x) & 0x0F)!=0)
 
 
 struct kernel kernel = { .system_stack = NULL, .current_task = NULL, .first_task = NULL, .switch_active = 0 };
@@ -34,6 +34,8 @@ struct kernel kernel = { .system_stack = NULL, .current_task = NULL, .first_task
 static uint16_t tick_counter = 0;
 
 void task_starter(void *) __attribute__ ((naked));
+
+void task_stopper(void) __attribute__ ((naked));
 
 // The all-important task switch function
 void switch_task() __attribute__ ((naked));
@@ -45,7 +47,8 @@ void reduce_delays(void){
 	task_t * task = kernel.first_task;
 	while ( task != NULL )
 	{
-		if ( !TASK_CAN_RUN(task->state) )
+		/* We only need to test TASK_DELAYED and TASK_BLOCKED */
+		if ( (task->state& 0x30) != 0 )
 		{
 			if ( task->delay != 0 )
 				task->delay--;
@@ -75,9 +78,9 @@ void reduce_delays(void){
 ISR(TIMER0_OVF_vect, increase_tick_counter();reduce_delays(););
 
 void increase_tick_counter(void){
-	cli();
+	uint8_t interrupts = GET_INTERRUPTS;
 	tick_counter++; //multi byte variable. disabling interrupts while accessing
-	sei();
+	RESTORE_INTERRUPTS(interrupts);
 }
 
 uint16_t get_tick_counter(void){
@@ -92,7 +95,7 @@ uint16_t get_tick_counter(void){
 void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
     set_sleep_mode(SLEEP_MODE_IDLE);
     kernel.system_stack = ( uint8_t * )malloc( sizeof(uint8_t)*system ) + system - 1;
-	add_task(idle,NULL,0,0,stack_len);
+	add_task(idle,NULL, NULL,0,0,stack_len);
 	SP = (uint16_t)kernel.system_stack;
 	sei();
 	__asm__ volatile ("rjmp switch_task\n" ::);
@@ -101,26 +104,91 @@ void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
 
 /*Trick to start tasks.
 */
-void task_starter(void * data){
+void task_starter(void * data)/*__attribute__ ((naked))*/{
 	sei();
-	kernel.current_task->func(data);
+	do
+	{
+		kernel.current_task->func(data);
+	} while (kernel.current_task->priority == 0); // Idle tasks cannot quit
+	task_stopper();
 }
 
 
-int add_task(void (*f)(void*),void * init_data,uint16_t delay, uint8_t priority, uint16_t stack_len ){
-	task_t * new_task;
-	new_task = ( task_t * ) malloc(sizeof(task_t));
-	if ( new_task == NULL )
-		return NO_MEMORY;
-	new_task->bottom_stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
-	if (  new_task->bottom_stack == NULL)
-	{
-		free(new_task);
-		return NO_MEMORY;
-	}
-	// This can be used to detect stack overflows.
-	new_task->stack = new_task->bottom_stack + sizeof(uint8_t)*stack_len-1;
+void task_stopper(void)/*__attribute__ ((naked))*/{
+	sei();
+	kernel.current_task->state = TASK_STOPPING;
+	if (  kernel.current_task->finisher != NULL) 
+		kernel.current_task->finisher();
+	kernel.current_task->func = NULL;
+	kernel.current_task->state = TASK_STOPPED;
+	yield();
+}
 
+task_t * get_task(void (*f)(void*))
+{
+	task_t * task = kernel.first_task;
+	while ( task != NULL )
+	{
+		if ( task->func == f )
+		{
+			return task;
+		}
+		task = task->next_task;
+	}	
+	return NULL;
+}
+
+int stop_task(task_t * task){
+	if ( task == NULL )
+		return NULL_TASK;
+	if ( task == kernel.current_task )
+		task_stopper(); // it won't return.
+	if ( task->priority > kernel.current_task->priority || task->priority  == 0	)
+		return NO_PERMISSIONS;
+ 	*((task->stack)--) = ((uint16_t)task_stopper) & 0xFF;
+	*((task->stack)--) = (((uint16_t)task_stopper) >> 8) & 0xFF;
+	return OK;
+}
+
+int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t delay, uint8_t priority, uint16_t stack_len ){
+	task_t * new_task = NULL,* task = kernel.first_task;
+	uint16_t min_stack_len = 0xFFFF;
+	while ( task != NULL )
+	{
+		/* Finding an task already created but stopped and which stack we can use*/
+		if ( task->state == TASK_STOPPED && task->stack_len >= stack_len && task->stack_len <= min_stack_len )
+		{
+			new_task = task;
+			min_stack_len = task->stack_len; 
+			break;
+		}
+		task = task->next_task;
+	}	
+	if ( new_task == NULL )
+	{
+		cli();
+		new_task = ( task_t * ) malloc(sizeof(task_t));
+		sei();
+		if ( new_task == NULL )
+			return NO_MEMORY;
+		new_task->state = TASK_STOPPED; // to prevent side effects when we add it to the list.
+		cli();
+		new_task->bottom_stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
+		sei();
+		if (  new_task->bottom_stack == NULL)
+		{
+			cli();
+			free(new_task);
+			sei();
+			return NO_MEMORY;
+		}
+		new_task->stack_len = stack_len;
+		new_task->next_task = kernel.first_task;
+		kernel.first_task = new_task;
+	}
+
+	// This can be used to detect stack overflows.
+	new_task->stack = new_task->bottom_stack + sizeof(uint8_t)*new_task->stack_len-1;
 	// To jump start the task.
 	// we use another function with no arguments.
  	*((new_task->stack)--) = ((uint16_t)task_starter) & 0xFF;
@@ -132,12 +200,11 @@ int add_task(void (*f)(void*),void * init_data,uint16_t delay, uint8_t priority,
  	*((new_task->stack)--) = ((uint16_t)init_data) & 0xFF;
 	*((new_task->stack)--) = (((uint16_t)init_data) >> 8) & 0xFF;
 	new_task->func = f;
+	new_task->finisher = finisher;
 	if ( delay == 0 )
 		new_task->state = TASK_STARTING;
 	else
 		new_task->state = TASK_DELAYED;
-	new_task->next_task = kernel.first_task;
-	kernel.first_task = new_task;
 	return 0;
 }
 

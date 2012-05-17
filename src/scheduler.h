@@ -29,15 +29,21 @@
 
 /*
  * It is important to keep these defines as they are because we take advantage of that
- * in the switch_task routine
+ * in the switch_task routine and in other place to quickly check a range of states
+ * NOTE:NEVER CHANGE THESE VALUES UNLESS YOU KNOW WHAT YOU ARE DOING
  */
 #define TASK_STARTING 0x01
 #define TASK_RUNNING 0x02
 #define TASK_READY 0x03
+#define TASK_STOPPING 0x04
 #define TASK_BLOCKED 0x10
 #define TASK_DELAYED 0x20
-#define TASK_STOPPED 0x30
+#define TASK_STOPPED 0x40
+
+#define OK 0
 #define NO_MEMORY 1
+#define NULL_TASK 1
+#define NO_PERMISSIONS 2
 
 
 typedef struct task_t{
@@ -49,6 +55,9 @@ typedef struct task_t{
 
 	/* function pointer */
 	void (*func)(void *);
+	
+	/* function to be used when stopped */
+	void (*finisher)(void);
 
 	/*  the init data passed to the task*/
 	void * init_data;
@@ -62,6 +71,9 @@ typedef struct task_t{
 	/* Maximum top for the stack, will help to detect stack overflows */
 	uint8_t * bottom_stack;
 
+	/* Stack lenght */
+	uint16_t stack_len;
+	
 	/* Pointer to the next task*/
 	struct task_t * next_task;
 } task_t;
@@ -78,11 +90,17 @@ extern struct kernel kernel;
 void increase_tick_counter(void);
 
 uint16_t get_tick_counter(void);
+task_t * get_task(void (*f)(void*));
 
 /*
  * stack_len should be bigger than 38 as this is the minimum size for any task's stack.
  */
-int add_task(void (*f)(void *),void * init_data, uint16_t delay, uint8_t prority, uint16_t stack_len );
+int add_task(void (*f)(void *),void (*finisher)(void), void * init_data, uint16_t delay, uint8_t prority, uint16_t stack_len );
+
+
+
+int stop_task(task_t * task);
+#define self_stop() stop_task(kernel.current_task)
 
 void yield(void) /*__attribute__ ((naked))*/;
 
@@ -96,7 +114,7 @@ void sleep_ticks(uint16_t ticks);
 void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
 #if USE_DEFAULT_IDLE
 	#undef rtos_init
-	#define rtos_init(system) rtos_init(idle_task,IDLE_STACK_SIZE,system)
+	#define rtos_init(system) rtos_init(__internal_idle_task,IDLE_STACK_SIZE,system)
 #endif
 
 /**

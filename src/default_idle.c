@@ -2,11 +2,9 @@
 #include <avr/sleep.h>
 #include "default_idle.h"
 
-void idle_task(void * data ) {
-	while (1)
-	{
-		sleep_enable();
-        sei();
-        sleep_cpu();
-	}
+void __internal_idle_task(void * data ) {
+	sleep_enable();
+	sei();
+	sleep_cpu();
+	sleep_disable();
 }

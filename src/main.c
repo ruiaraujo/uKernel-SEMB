@@ -58,17 +58,28 @@ void task3(void * init) {
 		bit_clear(PORTC, 2);
 		_delay_ms(250);
 		sleep_ticks(50);
+		void task4(void * init);
+		if ( get_task(&task4) == NULL  ) //testing the search and adding a new task
+			add_task(&task4,NULL,NULL, 300, 15,70);
 	}
 }
 
 /* C = [36 .. 100] ms */
 void task4(void * init) {
+	int i = 0;
+	bit_clear(PORTC, 4);
 	while (1){
 		bit_set(PORTC, 3);
 		_delay_ms(300);
 		bit_clear(PORTC, 3);
 		_delay_ms(300);
 		sleep_ticks(50);
+		i++;
+		if ( i >= 5 )
+		{
+			bit_set(PORTC, 4);
+			self_stop(); // testing how tasks stop
+		}
 	}
 }
 
@@ -78,17 +89,17 @@ int main (void) {
 	TCCR0|=(uint8_t)(1<<CS02)|(1<<CS00); // Prescaler = FCPU/1024
 	TIMSK|=(uint8_t)(1<<TOIE0); //Enable Overflow Interrupt Enable
 	TCNT0=(uint8_t)241; //Initialize Timer Counter
-	DDRC|=(uint8_t)0x0F; //Port C[3,2,1,0] as output
+	DDRC|=(uint8_t)0x3F; //Port C[3,2,1,0] as output
 	PORTB = (uint8_t)0x03; //activate pull-ups on PB0 e PB1
 	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
 	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
     cli();
 	/* periodic task */
-	add_task(&task1,NULL, 0, 4,38);
+	add_task(&task1,NULL,NULL, 0, 4,70);
 	/* one-shot task */
-	add_task(&task2,NULL, 50, 10,40);
-	add_task(&task3,NULL, 25, 5,40);
-	add_task(&task4,NULL, 30, 15,40);
+	add_task(&task2,NULL,NULL, 50, 10,70);
+	add_task(&task3,NULL,NULL, 25, 5,70);
+	add_task(&task4,NULL,NULL, 30, 15,70);
 	rtos_init(70);
 	return 0;
 }
