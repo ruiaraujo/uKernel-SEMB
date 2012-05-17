@@ -8,6 +8,8 @@
   <FILE GROUP="Source Files" NAME="src/scheduler.c"/>
   <FILE GROUP="Header Files" NAME="src/scheduler.h"/>
   <FILE GROUP="Design Files" NAME="atmega8.DSN"/>
+  <FILE GROUP="Header Files" NAME="src/mutex.h"/>
+  <FILE GROUP="Source Files" NAME="src/mutex.c"/>
  </FILES>
  <CONFIGURATION TARGET="Debug" COMPILER="WinAVR" NAME="Debug">
   <CONTROLLER FAMILY="AVR" CLOCK="14.7456MHz" TYPE="ATmega8"/>
@@ -18,11 +20,15 @@
    <FILE TOOL="CC" NAME="Debug/scheduler.o">
     <FILE NAME="src/scheduler.c"/>
    </FILE>
+   <FILE TOOL="CC">
+    <FILE NAME="src/mutex.c"/>
+   </FILE>
   </FILE>
   <FILE NAME="src/bit_tools.h"/>
   <FILE NAME="src/printf_tools.h"/>
   <FILE NAME="src/scheduler.h"/>
   <FILE NAME="atmega8.DSN"/>
+  <FILE NAME="src/mutex.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
@@ -42,11 +48,15 @@
    <FILE TOOL="CC">
     <FILE NAME="src/scheduler.c"/>
    </FILE>
+   <FILE TOOL="CC">
+    <FILE NAME="src/mutex.c"/>
+   </FILE>
   </FILE>
   <FILE NAME="src/bit_tools.h"/>
   <FILE NAME="src/printf_tools.h"/>
   <FILE NAME="src/scheduler.h"/>
   <FILE NAME="atmega8.DSN"/>
+  <FILE NAME="src/mutex.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
