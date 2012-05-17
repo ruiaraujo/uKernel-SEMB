@@ -29,7 +29,26 @@
 #define TASK_CAN_RUN(x) (((x) & 0x0F)!=0)
 
 
-struct kernel kernel = { .system_stack = NULL, .current_task = NULL, .first_task = NULL, .switch_active = 0 };
+/**
+ * If we don't want to use dynamic memory we have a static array of tasks
+ * and a static buffer where we will hold the number of stacks needed.
+ */
+#if !USE_DYNAMIC_MEMORY
+	uint8_t __stack_available[TOTAL_BYTES_STACK];
+	static uint16_t __current_position_stack = 0;
+
+	uint8_t * get_stack(uint16_t lenght ){
+		if ( __current_position_stack + lenght >= TOTAL_BYTES_STACK )
+			return NULL;
+		__current_position_stack += lenght;
+		return &__stack_available[__current_position_stack-lenght];
+	}
+
+	task_t __all_taks[NUMBER_OF_TASKS];
+	static uint16_t __current_position_tasks = 0;
+#endif
+
+struct kernel kernel = { .system_stack = NULL, .current_task = NULL, .first_task = NULL, .switch_active = 0};
 
 static uint16_t tick_counter = 0;
 
@@ -94,7 +113,26 @@ uint16_t get_tick_counter(void){
  */
 void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
     set_sleep_mode(SLEEP_MODE_IDLE);
+#if USE_DYNAMIC_MEMORY
+	uint8_t interrupt = GET_INTERRUPTS;
+	cli();
     kernel.system_stack = ( uint8_t * )malloc( sizeof(uint8_t)*system ) + system - 1;
+	RESTORE_INTERRUPTS(interrupt);
+#else
+	kernel.system_stack = get_stack( sizeof(uint8_t)*system ) + system - 1;
+#endif
+	if ( kernel.system_stack == NULL  ){
+		/**
+		 * If we don't have enough stack for the system,
+		 * we try to warn the user
+		 */
+		#if TEST_STACK_OVERFLOW
+				cli();
+				ACTION_IN_STACK_OVERFLOW;
+				while (1);
+		#endif
+		return;
+	}
 	add_task(idle,NULL, NULL,0,0,stack_len);
 	SP = (uint16_t)kernel.system_stack;
 	sei();
@@ -154,6 +192,7 @@ int stop_task(task_t * task){
 int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t delay, uint8_t priority, uint16_t stack_len ){
 	task_t * new_task = NULL,* task = kernel.first_task;
 	uint16_t min_stack_len = 0xFFFF;
+	uint8_t interrupt;
 	while ( task != NULL )
 	{
 		/* Finding an task already created but stopped and which stack we can use*/
@@ -167,23 +206,39 @@ int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t 
 	}	
 	if ( new_task == NULL )
 	{
+		interrupt = GET_INTERRUPTS;
 		cli();
+#if USE_DYNAMIC_MEMORY
 		new_task = ( task_t * ) malloc(sizeof(task_t));
-		sei();
 		if ( new_task == NULL )
-			return NO_MEMORY;
-		new_task->state = TASK_STOPPED; // to prevent side effects when we add it to the list.
-		cli();
-		new_task->bottom_stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
-		sei();
-		if (  new_task->bottom_stack == NULL)
 		{
-			cli();
-			free(new_task);
-			sei();
+			RESTORE_INTERRUPTS(interrupt);
 			return NO_MEMORY;
 		}
+		new_task->bottom_stack = ( uint8_t * )malloc( sizeof(uint8_t)*stack_len );
+		if (  new_task->bottom_stack == NULL)
+		{
+			free(new_task);
+			RESTORE_INTERRUPTS(interrupt);
+			return NO_MEMORY;
+		}
+#else
+		if ( __current_position_tasks >=  NUMBER_OF_TASKS )
+		{
+			RESTORE_INTERRUPTS(interrupt);
+			return NO_MEMORY;
+		}
+		new_task = &__all_taks[__current_position_tasks++];
+		new_task->bottom_stack = get_stack( sizeof(uint8_t)*stack_len );
+		if (  new_task->bottom_stack == NULL)
+		{
+			RESTORE_INTERRUPTS(interrupt);
+			return NO_MEMORY;
+		}
+#endif
+		RESTORE_INTERRUPTS(interrupt);
 		new_task->stack_len = stack_len;
+		new_task->state = TASK_STOPPED; // to prevent side effects when we add it to the list.
 		new_task->next_task = kernel.first_task;
 		kernel.first_task = new_task;
 	}

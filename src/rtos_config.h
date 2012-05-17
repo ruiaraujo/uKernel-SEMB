@@ -28,6 +28,20 @@
 /* With this active there is no need to define an idle task*/
 #define USE_DEFAULT_IDLE 1
 
+#define USE_DYNAMIC_MEMORY 0
+#define NUMBER_OF_TASKS 10
+#define TOTAL_BYTES_STACK 400
+
+#if !USE_DYNAMIC_MEMORY
+	#ifndef NUMBER_OF_TASKS
+		#error The maximum number of tasks must be specified
+	#endif
+	#ifndef TOTAL_BYTES_STACK
+		#error The total memory for stack must be defined
+	#endif
+#endif
+
+
 #define TEST_STACK_OVERFLOW 0
 #define ACTION_IN_STACK_OVERFLOW PORTC = 0xFF;
 #if TEST_STACK_OVERFLOW
