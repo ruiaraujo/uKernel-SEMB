@@ -18,30 +18,41 @@
  *
  */
  #include "mutex.h"
+ #include <stdint.h>
+ 
+void mutexe_init(mutexe* m){
+	m->state = UNLOCK;
+	m->owner = NULL;
+}
+ 
  
  void mutexe_lock(mutexe* m){
-	int state = m->state;
+	uint8_t state = m->state, interrupts;
 	 
-	cli(); //disable interrupts
+	interrupts = GET_INTERRUPTS; //disable interrupts
+	cli();
 	while (state != UNLOCK)
 		yield();
 	m->state = LOCK;
-	sei();//enable interrupts
+	//m->owner = 
+	RESTORE_INTERRUPTS(interrupts);//enable interrupts
 }
-int mutexe_try_lock(task_t* t, mutexe* m){
-	/*
-	if (m->owner == t){
-			return -1;
+int mutexe_try_lock(mutexe* m){
+	
+	if (m->owner == NULL){
+		mutexe_lock(m);	
+		return 0;
 		
 	}
-	else{
-		mutexe
-	}
-	*/
+	return -1;
 }
 void mutexe_unlock(mutexe* m){
-	cli();//disable interrupts
+	uint8_t interrupts;
+	
+	interrupts = GET_INTERRUPTS;//disable interrupts
+	cli();
 	m->state = 	UNLOCK;
-	sei();//enable interrupts
+	m->owner = NULL;
+	RESPORE_INTERRUPTS(interrupts);//enable interrupts
 	
 }
