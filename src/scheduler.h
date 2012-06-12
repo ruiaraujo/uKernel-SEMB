@@ -47,8 +47,11 @@
 
 
 typedef struct task_t{
-	/* period in ticks */
+	/* priority */
 	uint8_t priority;
+
+	/* period in ticks */
+	uint16_t period;
 
 	/* ticks to execute*/
 	uint16_t delay;
@@ -81,7 +84,10 @@ typedef struct task_t{
 struct kernel{
 	uint8_t * system_stack;
 	task_t * current_task;
-	task_t * first_task;
+	task_t * spleeping_tasks;
+	task_t * blocked_tasks;
+	task_t * stopped_tasks;
+	task_t * ready_tasks;
 	uint8_t switch_active;
 };
 
@@ -95,7 +101,7 @@ task_t * get_task(void (*f)(void*));
 /*
  * stack_len should be bigger than 38 as this is the minimum size for any task's stack.
  */
-int add_task(void (*f)(void *),void (*finisher)(void), void * init_data, uint16_t delay, uint8_t prority, uint16_t stack_len );
+int add_task(void (*f)(void *),void (*finisher)(void), void * init_data,  uint16_t period,uint16_t delay, uint8_t prority, uint16_t stack_len );
 
 
 
@@ -157,6 +163,25 @@ void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
 		{\
 			SP = (uint16_t)kernel.current_task->stack;\
 			__asm__ volatile ("rjmp switch_task\n" ::);\
+		}\
+		restore_cpu_context();\
+		__asm__ volatile ("reti\n" ::); \
+	}
+
+//This version uses the task
+#define ISR_NO_SWITCH(vector, function) void vector(void) __attribute__ ((signal,naked,__INTR_ATTRS));\
+	void vector(void) {\
+		save_cpu_context();\
+		if ( !kernel.switch_active )\
+		{	\
+			*(((uint8_t*)SP)+1) |= _BV(SREG_I); \
+			kernel.current_task->stack = (uint8_t*)SP; \
+			SP = (uint16_t)kernel.system_stack;\
+		}\
+		function;\
+		if ( !kernel.switch_active )\
+		{\
+			SP = (uint16_t)kernel.current_task->stack;\
 		}\
 		restore_cpu_context();\
 		__asm__ volatile ("reti\n" ::); \
