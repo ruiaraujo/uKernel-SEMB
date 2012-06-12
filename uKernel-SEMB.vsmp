@@ -3,14 +3,14 @@
  <KEYWORDS/>
  <FILES>
   <FILE GROUP="Header Files" NAME="src/bit_tools.h"/>
-  <FILE GROUP="Source Files" NAME="src/main.c"/>
   <FILE GROUP="Header Files" NAME="src/printf_tools.h"/>
-  <FILE GROUP="Source Files" NAME="src/scheduler.c"/>
   <FILE GROUP="Header Files" NAME="src/scheduler.h"/>
-  <FILE GROUP="Design Files" NAME="atmega8.DSN"/>
   <FILE GROUP="Header Files" NAME="src/rtos_config.h"/>
   <FILE GROUP="Header Files" NAME="src/default_idle.h"/>
+  <FILE GROUP="Source Files" NAME="src/scheduler.c"/>
+  <FILE GROUP="Source Files" NAME="src/main.c"/>
   <FILE GROUP="Source Files" NAME="src/default_idle.c"/>
+  <FILE GROUP="Design Files" NAME="atmega8.DSN"/>
  </FILES>
  <CONFIGURATION TARGET="Debug" COMPILER="WinAVR" NAME="Debug">
   <CONTROLLER FAMILY="AVR" CLOCK="14745600Hz" TYPE="ATmega8"/>
@@ -21,7 +21,7 @@
    <FILE TOOL="CC" NAME="Debug/scheduler.o">
     <FILE NAME="src/scheduler.c"/>
    </FILE>
-   <FILE TOOL="CC">
+   <FILE TOOL="CC" NAME="Debug/default_idle.o">
     <FILE NAME="src/default_idle.c"/>
    </FILE>
   </FILE>

@@ -158,30 +158,18 @@ void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
 			kernel.current_task->stack = (uint8_t*)SP; \
 			SP = (uint16_t)kernel.system_stack;\
 		}\
-		function;\
-		if ( !kernel.switch_active )\
-		{\
-			SP = (uint16_t)kernel.current_task->stack;\
-			__asm__ volatile ("rjmp switch_task\n" ::);\
+		if ( function)  {\
+			if ( !kernel.switch_active )\
+			{\
+				SP = (uint16_t)kernel.current_task->stack;\
+				__asm__ volatile ("rjmp switch_task\n" ::);\
+			}\
 		}\
-		restore_cpu_context();\
-		__asm__ volatile ("reti\n" ::); \
-	}
-
-//This version uses the task
-#define ISR_NO_SWITCH(vector, function) void vector(void) __attribute__ ((signal,naked,__INTR_ATTRS));\
-	void vector(void) {\
-		save_cpu_context();\
-		if ( !kernel.switch_active )\
-		{	\
-			*(((uint8_t*)SP)+1) |= _BV(SREG_I); \
-			kernel.current_task->stack = (uint8_t*)SP; \
-			SP = (uint16_t)kernel.system_stack;\
-		}\
-		function;\
-		if ( !kernel.switch_active )\
-		{\
-			SP = (uint16_t)kernel.current_task->stack;\
+		else{\
+			if ( !kernel.switch_active )\
+			{\
+				SP = (uint16_t)kernel.current_task->stack;\
+			}\
 		}\
 		restore_cpu_context();\
 		__asm__ volatile ("reti\n" ::); \

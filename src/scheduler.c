@@ -38,7 +38,7 @@
 	static uint16_t __current_position_stack = 0;
 
 	uint8_t * get_stack(uint16_t lenght ){
-		if ( __current_position_stack + lenght >= TOTAL_BYTES_STACK )
+		if ( __current_position_stack + lenght > TOTAL_BYTES_STACK )
 			return NULL;
 		__current_position_stack += lenght;
 		return &__stack_available[__current_position_stack-lenght];
@@ -59,16 +59,24 @@ void task_stopper(void) __attribute__ ((naked));
 
 // The all-important task switch function
 void switch_task() __attribute__ ((naked));
-void reduce_delays(void);
+uint8_t reduce_delays(void);
 
-void add_task_to_running(task_t * task, task_t * first){
-	task_t * current_task = first;
-	task_t * previous_task = first;
-	task->state = TASK_READY;
+void add_task_to_running(task_t * task, task_t ** first){
+	task_t * current_task = *first;
+	task_t * previous_task = *first;
+	if ( *first == NULL ) {
+		*first = task;
+		task->next_task = NULL;
+		return;
+	}
 	while ( current_task != NULL ){
 		if ( current_task->priority < task->priority ){
 			task->next_task = current_task;
-			previous_task->next_task = task;
+			/* The first position insertion is different*/
+			if ( previous_task == current_task )
+				*first = task;
+			else
+				previous_task->next_task = task;
 			return;
 		}
 		previous_task = current_task;
@@ -80,17 +88,23 @@ void add_task_to_running(task_t * task, task_t * first){
 }
 
 
-void add_task_to_blocked(task_t * task, task_t * first){
-	task_t * current_task = first;
-	task_t * previous_task = first;
+void add_task_to_blocked(task_t * task, task_t ** first){
+	task_t * current_task = *first;
+	task_t * previous_task = *first;
+	if ( *first == NULL ) {
+		*first = task;
+		task->next_task = NULL;
+		return;
+	}
 	while ( current_task != NULL ){
-		if ( current_task->delay < task->delay ){
+		if ( task->delay < current_task->delay ){
 			task->next_task = current_task;
-			previous_task->next_task = task;
-			while ( current_task != NULL ){
-				current_task->delay -= task->delay;
-				current_task = current_task->next_task;
-			}
+			/* The first position insertion is different*/
+			if ( previous_task == current_task )
+				*first = task;
+			else
+				previous_task->next_task = task;
+			current_task->delay -= task->delay;
 			return;
 		}
 		previous_task = current_task;
@@ -103,8 +117,11 @@ void add_task_to_blocked(task_t * task, task_t * first){
 }
 
 
-void reduce_delays(void){
+uint8_t reduce_delays(void){
 	task_t * task = kernel.spleeping_tasks;
+	task_t  *tmp = NULL;
+	uint8_t need_switch = 0;
+	increase_tick_counter();
 	if ( task != NULL )
 	{
 		/* We only need to test TASK_DELAYED and TASK_BLOCKED */
@@ -112,12 +129,16 @@ void reduce_delays(void){
 			/* Moving all finished tasks to the ready queue*/
 			while ( task->delay == 0 )
 			{
+				need_switch = 1;
 				if ( task->state ==  TASK_DELAYED )
 					task->state = TASK_STARTING;
 				else
 					task->state = TASK_READY;
-				add_task_to_running(task,kernel.ready_tasks);
-				task = task->next_task;
+				tmp = task->next_task;
+				add_task_to_running(task,&kernel.ready_tasks);
+				task = tmp;
+				if ( task == NULL  )
+					break;
 			}
 			kernel.spleeping_tasks = task;
 
@@ -130,12 +151,13 @@ void reduce_delays(void){
 			while (1);
 		}
 	#endif
+	return need_switch;
 }
 
 
 //This is the interrupt service routine for TIMER0 OVERFLOW Interrupt.
 //CPU automatically call this when TIMER0 overflows.
-ISR(TIMER0_OVF_vect, increase_tick_counter();reduce_delays(););
+ISR(TIMER0_OVF_vect, reduce_delays());
 
 void increase_tick_counter(void){
 	uint8_t interrupts = GET_INTERRUPTS;
@@ -202,7 +224,8 @@ void task_stopper(void)/*__attribute__ ((naked))*/{
 	kernel.current_task->state = TASK_STOPPED;
 	kernel.current_task->next_task = kernel.stopped_tasks;
 	kernel.stopped_tasks = kernel.current_task;
-	yield();
+	kernel.current_task = NULL;
+	__asm__ volatile ("rjmp switch_task\n" ::);
 }
 
 task_t * get_task(void (*f)(void*))
@@ -253,19 +276,25 @@ int stop_task(task_t * task){
 }
 
 int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t period,uint16_t delay, uint8_t priority, uint16_t stack_len ){
-	task_t * new_task = NULL,* task = kernel.stopped_tasks;
+	task_t * new_task = NULL,* current, *previous;
 	uint16_t min_stack_len = 0xFFFF;
 	uint8_t interrupt;
-	while ( task != NULL )
+	current = previous = kernel.stopped_tasks;
+	while ( current != NULL )
 	{
 		/* Finding an task already created but stopped and which stack we can use*/
-		if ( task->stack_len >= stack_len && task->stack_len <= min_stack_len )
+		if ( current->stack_len >= stack_len && current->stack_len <= min_stack_len )
 		{
-			new_task = task;
-			min_stack_len = task->stack_len; 
+			if ( previous == current )
+				kernel.stopped_tasks = current->next_task;
+			else
+				previous->next_task = current->next_task;
+			new_task = current;
+			min_stack_len = current->stack_len; 
 			break;
 		}
-		task = task->next_task;
+		previous = current;
+		current = current->next_task;
 	}	
 	if ( new_task == NULL )
 	{
@@ -320,48 +349,44 @@ int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t 
 	interrupt = GET_INTERRUPTS;
 	if ( delay == 0 ){
 		new_task->state = TASK_STARTING;
-		add_task_to_running(new_task, kernel.ready_tasks);
+		add_task_to_running(new_task, &kernel.ready_tasks);
 	}
 	else{
 		new_task->state = TASK_DELAYED;
-		add_task_to_blocked(new_task, kernel.spleeping_tasks);
+		add_task_to_blocked(new_task, &kernel.spleeping_tasks);
 	}
 	RESTORE_INTERRUPTS(interrupt);
 	return 0;
 }
 
 void sleep_ticks(uint16_t ticks){
-	uint8_t interrupts = GET_INTERRUPTS;
 	kernel.current_task->delay = ticks;
 	kernel.current_task->state = TASK_BLOCKED;
-	add_task_to_blocked(kernel.current_task, kernel.spleeping_tasks);
 	save_cpu_context();
 	kernel.current_task->stack = (uint8_t*)SP;
+	add_task_to_blocked(kernel.current_task, &kernel.spleeping_tasks);
 	kernel.current_task = NULL;
-	RESTORE_INTERRUPTS(interrupts);
 	__asm__ volatile ("rjmp switch_task\n" ::);
 }
 
 
 void yield() { /*  __attribute__ ((naked)) */
-	uint8_t interrupt = GET_INTERRUPTS;
-	if ( kernel.current_task->period == 0 )
-		add_task_to_running(kernel.current_task,kernel.ready_tasks);
+	save_cpu_context();
+	kernel.current_task->stack = (uint8_t*)SP;
+	if ( kernel.current_task->period == 0 ){
+		kernel.current_task->state = TASK_READY;
+		add_task_to_running(kernel.current_task,&kernel.ready_tasks);
+	}
 	else {
 		kernel.current_task->state = TASK_BLOCKED;
 		kernel.current_task->delay = kernel.current_task->period;
-		add_task_to_blocked(kernel.current_task, kernel.spleeping_tasks);
+		add_task_to_blocked(kernel.current_task, &kernel.spleeping_tasks);
 	}
-	save_cpu_context();
-	kernel.current_task->stack = (uint8_t*)SP;
 	kernel.current_task = NULL;
-	RESTORE_INTERRUPTS(interrupt);
 	__asm__ volatile ("rjmp switch_task\n" ::);
 }
 
 void switch_task()  /*__attribute__ ((naked))*/{
-	register uint8_t interrupt  asm ("r18");
-	interrupt = GET_INTERRUPTS;
 	kernel.switch_active = 1;
 	SP = (uint16_t)kernel.system_stack;
 	sei();
@@ -369,8 +394,9 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	cli();
 	if ( kernel.current_task != NULL )
 	{
+		kernel.current_task->state = TASK_READY;
 		/* If current != NULL here means it was not moved */
-		add_task_to_running(kernel.current_task,kernel.ready_tasks);
+		add_task_to_running(kernel.current_task,&kernel.ready_tasks);
 	}
 	kernel.current_task = kernel.ready_tasks;
 	kernel.ready_tasks = kernel.ready_tasks->next_task;
@@ -386,7 +412,6 @@ void switch_task()  /*__attribute__ ((naked))*/{
 		restore_cpu_context(); // The task has previously saved its context onto its stack
 	}
 	kernel.switch_active = 0;
-	RESTORE_INTERRUPTS(interrupt);
 	__asm__ volatile ("ret\n" ::);
 }
 
