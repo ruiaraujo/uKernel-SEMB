@@ -48,8 +48,8 @@
 	static uint16_t __current_position_tasks = 0;
 #endif
 
-struct kernel kernel = { .system_stack = NULL, .current_task = NULL, .blocked_tasks = NULL,
-						.spleeping_tasks = NULL, .stopped_tasks = NULL, .ready_tasks = NULL,.switch_active = 0};
+struct kernel kernel = { .system_stack = NULL, .current_task = NULL,.spleeping_tasks = NULL, .stopped_tasks = NULL,
+						.ready_tasks = NULL,.switch_active = 0};
 
 static uint16_t tick_counter = 0;
 
@@ -61,7 +61,7 @@ void task_stopper(void) __attribute__ ((naked));
 void switch_task() __attribute__ ((naked));
 uint8_t reduce_delays(void);
 
-void add_task_to_running(task_t * task, task_t ** first){
+void add_task_to_priority_list(task_t * task, task_t ** first){
 	task_t * current_task = *first;
 	task_t * previous_task = *first;
 	if ( *first == NULL ) {
@@ -88,7 +88,7 @@ void add_task_to_running(task_t * task, task_t ** first){
 }
 
 
-void add_task_to_blocked(task_t * task, task_t ** first){
+static void add_task_to_blocked(task_t * task, task_t ** first){
 	task_t * current_task = *first;
 	task_t * previous_task = *first;
 	if ( *first == NULL ) {
@@ -135,7 +135,7 @@ uint8_t reduce_delays(void){
 				else
 					task->state = TASK_READY;
 				tmp = task->next_task;
-				add_task_to_running(task,&kernel.ready_tasks);
+				add_task_to_priority_list(task,&kernel.ready_tasks);
 				task = tmp;
 				if ( task == NULL  )
 					break;
@@ -341,6 +341,7 @@ int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t 
 	new_task->priority = priority;
 	new_task->delay = delay;
 	new_task->init_data = init_data;
+	new_task->holding_mutex = NULL;
 	//placing arguments in the stack for further use
  	*((new_task->stack)--) = ((uint16_t)init_data) & 0xFF;
 	*((new_task->stack)--) = (((uint16_t)init_data) >> 8) & 0xFF;
@@ -349,7 +350,7 @@ int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t 
 	interrupt = GET_INTERRUPTS;
 	if ( delay == 0 ){
 		new_task->state = TASK_STARTING;
-		add_task_to_running(new_task, &kernel.ready_tasks);
+		add_task_to_priority_list(new_task, &kernel.ready_tasks);
 	}
 	else{
 		new_task->state = TASK_DELAYED;
@@ -375,7 +376,7 @@ void yield() { /*  __attribute__ ((naked)) */
 	kernel.current_task->stack = (uint8_t*)SP;
 	if ( kernel.current_task->period == 0 ){
 		kernel.current_task->state = TASK_READY;
-		add_task_to_running(kernel.current_task,&kernel.ready_tasks);
+		add_task_to_priority_list(kernel.current_task,&kernel.ready_tasks);
 	}
 	else {
 		kernel.current_task->state = TASK_BLOCKED;
@@ -396,7 +397,7 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	{
 		kernel.current_task->state = TASK_READY;
 		/* If current != NULL here means it was not moved */
-		add_task_to_running(kernel.current_task,&kernel.ready_tasks);
+		add_task_to_priority_list(kernel.current_task,&kernel.ready_tasks);
 	}
 	kernel.current_task = kernel.ready_tasks;
 	kernel.ready_tasks = kernel.ready_tasks->next_task;

@@ -11,6 +11,8 @@
   <FILE GROUP="Source Files" NAME="src/main.c"/>
   <FILE GROUP="Source Files" NAME="src/default_idle.c"/>
   <FILE GROUP="Design Files" NAME="atmega8.DSN"/>
+  <FILE GROUP="Source Files" NAME="src/mutex.c"/>
+  <FILE GROUP="Header Files" NAME="src/mutex.h"/>
  </FILES>
  <CONFIGURATION TARGET="Debug" COMPILER="WinAVR" NAME="Debug">
   <CONTROLLER FAMILY="AVR" CLOCK="14745600Hz" TYPE="ATmega8"/>
@@ -24,6 +26,9 @@
    <FILE TOOL="CC" NAME="Debug/default_idle.o">
     <FILE NAME="src/default_idle.c"/>
    </FILE>
+   <FILE TOOL="CC">
+    <FILE NAME="src/mutex.c"/>
+   </FILE>
   </FILE>
   <FILE NAME="src/bit_tools.h"/>
   <FILE NAME="src/printf_tools.h"/>
@@ -31,6 +36,7 @@
   <FILE NAME="atmega8.DSN"/>
   <FILE NAME="src/rtos_config.h"/>
   <FILE NAME="src/default_idle.h"/>
+  <FILE NAME="src/mutex.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
@@ -53,6 +59,9 @@
    <FILE TOOL="CC">
     <FILE NAME="src/default_idle.c"/>
    </FILE>
+   <FILE TOOL="CC">
+    <FILE NAME="src/mutex.c"/>
+   </FILE>
   </FILE>
   <FILE NAME="src/bit_tools.h"/>
   <FILE NAME="src/printf_tools.h"/>
@@ -60,6 +69,7 @@
   <FILE NAME="atmega8.DSN"/>
   <FILE NAME="src/rtos_config.h"/>
   <FILE NAME="src/default_idle.h"/>
+  <FILE NAME="src/mutex.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-g" VALUE="dwarf-2"/>

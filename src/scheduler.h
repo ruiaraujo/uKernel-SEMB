@@ -19,6 +19,7 @@
  */
 #include <stdint.h>
 #include "rtos_config.h"
+ #include "mutex.h"
 
 #include <avr/interrupt.h>
 #ifndef SCHEDULER_H_
@@ -79,13 +80,15 @@ typedef struct task_t{
 	
 	/* Pointer to the next task*/
 	struct task_t * next_task;
+		
+	mutex * holding_mutex;
+	
 } task_t;
 
 struct kernel{
 	uint8_t * system_stack;
 	task_t * current_task;
 	task_t * spleeping_tasks;
-	task_t * blocked_tasks;
 	task_t * stopped_tasks;
 	task_t * ready_tasks;
 	uint8_t switch_active;
@@ -103,6 +106,7 @@ task_t * get_task(void (*f)(void*));
  */
 int add_task(void (*f)(void *),void (*finisher)(void), void * init_data,  uint16_t period,uint16_t delay, uint8_t prority, uint16_t stack_len );
 
+void add_task_to_priority_list(task_t * task, task_t ** first);
 
 
 int stop_task(task_t * task);
