@@ -18,18 +18,43 @@
 #include "bit_tools.h" 
 #include "scheduler.h"
 #include <stdlib.h>
-#include <sys/time.h>
 
+	uint16_t tfin=0xFF;
 
-timeval time;
-double tini=0.0, tfin2=0.0, dif=0.0;
+uint16_t TIM16_ReadTCNT1( void )
+{
+	uint8_t sreg;
+	uint16_t value;
+
+	/* Save Global Interrupt Flag */
+	sreg = GET_INTERRUPTS;
+	/* Disable interrupts */
+	cli();
+	/* Read TCNT1 into i */
+	value = TCNT1;
+	/* Restore Global Interrupt Flag */
+	RESTORE_INTERRUPTS(sreg);
+	return value;
+}
+
+void TIM16_WriteTCNT1( uint16_t value )
+{
+	uint8_t sreg;
+	/* Save Global Interrupt Flag */
+	sreg = GET_INTERRUPTS;;
+	/* Disable interrupts */
+	cli();
+	/* Set TCNT1 to i */
+	TCNT1 = value;
+	/* Restore Global Interrupt Flag */
+	RESTORE_INTERRUPTS(sreg);
+}
 
 /* C = [12 .. 20] ms */
 void task1(void * init) {
 	
-	gettimeofday(&time, NULL);
-	tfin = time.tv_sec*1000000.0 + (time.tv_usec);
-	dif = tfin - tini;	
+
+	tfin = TIM16_ReadTCNT1();
 	
 	while (1){
 		bit_set(PORTC, 0);
@@ -41,9 +66,8 @@ void task1(void * init) {
 /* C = [7 .. 7] ms */
 void task2(void *  init) {
 	
-	gettimeofday(&time, NULL);
-	tini = (time.tv_sec*1000000.0 + time.tv_usec);
-	sleep_ticks(10);
+	TIM16_WriteTCNT1(0);
+	sleep_ticks(50);
 	
 	while (1){
 		bit_set(PORTC, 1);
@@ -58,12 +82,15 @@ int main (void) {
 	
 	TCCR0|=(uint8_t)(1<<CS02)|(1<<CS00); // Prescaler = FCPU/1024
 	TIMSK|=(uint8_t)(1<<TOIE0); //Enable Overflow Interrupt Enable
-	TCNT0=(uint8_t)241; //Initialize Timer Counter
+	TCNT0=(uint8_t)241; //Initialize Timer Counter 0
 	DDRC|=(uint8_t)0x3F; //Port C[3,2,1,0] as output
 	PORTB = (uint8_t)0x03; //activate pull-ups on PB0 e PB1
 	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
 	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
-    cli();
+    DDRD &= ~(1 << DDD5);     // Clear the PD5 pin	// PD5 is now an input
+	PORTD |= (1 << PORTD5);   // turn On the Pull-up
+	TCCR1B |= (0 << CS12) | (0 << CS11) | (1 << CS10);  // No prescaling
+	cli();
 	/* periodic task */
 	
 	add_task(&task1,NULL,NULL, 0, 1,50);
