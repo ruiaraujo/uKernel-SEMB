@@ -60,7 +60,7 @@ void task3(void * init) {
 		sleep_ticks(50);
 		void task4(void * init);
 		if ( get_task(&task4) == NULL  ) //testing the search and adding a new task
-			add_task(&task4,NULL,NULL, 300, 15,70);
+			add_task(&task4,NULL,NULL,0, 300, 15,70);
 	}
 }
 
@@ -95,11 +95,11 @@ int main (void) {
 	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
     cli();
 	/* periodic task */
-	add_task(&task1,NULL,NULL, 0, 4,70);
+	add_task(&task1,NULL,NULL, 0,0, 4,70);
 	/* one-shot task */
-	add_task(&task2,NULL,NULL, 50, 10,70);
-	add_task(&task3,NULL,NULL, 25, 5,70);
-	add_task(&task4,NULL,NULL, 30, 15,70);
+	add_task(&task2,NULL,NULL, 0,50, 10,70);
+	add_task(&task3,NULL,NULL, 0,25, 5,70);
+	add_task(&task4,NULL,NULL, 0,30, 15,70);
 	rtos_init(70);
 	return 0;
 }
