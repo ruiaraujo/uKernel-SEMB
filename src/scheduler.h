@@ -56,6 +56,9 @@ typedef struct task_t{
 
 	/* ticks to execute*/
 	uint16_t delay;
+	
+	/*Ticks left after activation (used in periodic tasks)*/
+	uint16_t ticks_after_activation;
 
 	/* function pointer */
 	void (*func)(void *);

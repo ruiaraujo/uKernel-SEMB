@@ -27,6 +27,8 @@
 #define ERROR 1
 #define NOT_LOCKED 2
 
+#define MUTEX_DEFAULT_INIT { .owner = NULL, .blocked_tasks = NULL };
+
 typedef struct mutex mutex;
 	
 uint8_t mutex_init(mutex* m);

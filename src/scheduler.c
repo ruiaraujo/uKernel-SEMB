@@ -216,14 +216,17 @@ void task_starter(void * data)/*__attribute__ ((naked))*/{
 
 
 void task_stopper(void)/*__attribute__ ((naked))*/{
-	sei();
+	uint8_t interrupt;
 	kernel.current_task->state = TASK_STOPPING;
 	if (  kernel.current_task->finisher != NULL) 
 		kernel.current_task->finisher();
+	if ( kernel.current_task->holding_mutex != NULL )
+		mutex_unlock(kernel.current_task->holding_mutex);
 	kernel.current_task->func = NULL;
-	kernel.current_task->state = TASK_STOPPED;
 	kernel.current_task->next_task = kernel.stopped_tasks;
 	kernel.stopped_tasks = kernel.current_task;
+	cli();
+	kernel.current_task->state = TASK_STOPPED;
 	kernel.current_task = NULL;
 	__asm__ volatile ("rjmp switch_task\n" ::);
 }
@@ -380,7 +383,10 @@ void yield() { /*  __attribute__ ((naked)) */
 	}
 	else {
 		kernel.current_task->state = TASK_BLOCKED;
-		kernel.current_task->delay = kernel.current_task->period;
+		if ( tick_counter > kernel.current_task->ticks_after_activation )
+			kernel.current_task->delay = kernel.current_task->period - ( tick_counter - kernel.current_task->ticks_after_activation );
+		else
+			kernel.current_task->delay = kernel.current_task->period - ( kernel.current_task->ticks_after_activation - tick_counter );
 		add_task_to_blocked(kernel.current_task, &kernel.spleeping_tasks);
 	}
 	kernel.current_task = NULL;
@@ -402,6 +408,8 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	kernel.current_task = kernel.ready_tasks;
 	kernel.ready_tasks = kernel.ready_tasks->next_task;
 	SP = (uint16_t)kernel.current_task->stack;
+	if (  kernel.current_task->state != TASK_READY )
+		kernel.current_task->ticks_after_activation = tick_counter;
 	if ( kernel.current_task->state == TASK_STARTING )
 	{
 		kernel.current_task->state = TASK_RUNNING;

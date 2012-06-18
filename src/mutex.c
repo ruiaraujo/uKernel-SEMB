@@ -23,8 +23,7 @@
 
 
 struct mutex{
-	int state;
-	task_t* owner;
+	task_t * owner;
 	task_t * blocked_tasks;
 };
 
@@ -80,6 +79,7 @@ uint8_t mutex_unlock(mutex* m){
 	if (  m->owner != kernel.current_task )
 		return NO_PERMISSIONS;
 	m->owner = NULL;
+	kernel.current_task->holding_mutex = NULL;
 	if ( m->blocked_tasks == NULL ){
 		return NOT_LOCKED;
 	}

@@ -93,8 +93,8 @@ int main (void) {
 	cli();
 	/* periodic task */
 	
-	add_task(&task1,NULL,NULL, 0, 1,50);
-	add_task(&task2,NULL,NULL, 0, 2,50);
+	add_task(&task1,NULL,NULL,500,0, 1,50);
+	add_task(&task2,NULL,NULL,500,0, 2,50);
 	rtos_init(50);
 	return 0;
 }
