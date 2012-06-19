@@ -72,31 +72,20 @@ void TIM16_WriteTCNT1( uint16_t value )
 	RESTORE_INTERRUPTS(sreg);
 }
 
-/* C = [12 .. 20] ms */
+/* C = [12 .. 20] ms 
+ tfin holds the execution time of 2 * yield();
+*/
 void task1(void * init) {
-	
-
-	tfin = TIM16_ReadTCNT1();
-	
-	while (1){
-		bit_set(PORTC, 0);
-		_delay_ms(100);
-		bit_clear(PORTC, 0);
-		_delay_ms(100);
+	while (1){		
+		TCNT1 = 0;
+		yield();
+		tfin = TCNT1 >> 1;
 	}
 }
 /* C = [7 .. 7] ms */
 void task2(void *  init) {
-	
-	TIM16_WriteTCNT1(0);
-	sleep_ticks(50);
-	
 	while (1){
-		bit_set(PORTC, 1);
-		_delay_ms(100);
-		bit_clear(PORTC, 1);
-		_delay_ms(100);
-		sleep_ticks(10);
+		yield();
 	}
 }
 
@@ -116,7 +105,7 @@ int main (void) {
 	/* periodic task */
 	
 	add_task(&task1,NULL,NULL,0,0, 1,50);
-	add_task(&task2,NULL,NULL,0,0, 2,50);
+	add_task(&task2,NULL,NULL,0,0, 1,50);
 	rtos_init(50);
 	return 0;
 }

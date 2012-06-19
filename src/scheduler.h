@@ -167,18 +167,16 @@ void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
 			kernel.current_task->stack = (uint8_t*)SP; \
 			SP = (uint16_t)kernel.system_stack;\
 		}\
-		if ( function)  {\
+		if ( function )  {\
 			if ( !kernel.switch_active )\
 			{\
 				SP = (uint16_t)kernel.current_task->stack;\
 				__asm__ volatile ("rjmp switch_task\n" ::);\
 			}\
 		}\
-		else{\
-			if ( !kernel.switch_active )\
-			{\
-				SP = (uint16_t)kernel.current_task->stack;\
-			}\
+		if ( !kernel.switch_active )\
+		{\
+			SP = (uint16_t)kernel.current_task->stack;\
 		}\
 		restore_cpu_context();\
 		__asm__ volatile ("reti\n" ::); \
