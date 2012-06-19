@@ -197,8 +197,6 @@ void rtos_init(void (*idle)(void*),uint16_t stack_len,uint16_t system ){
 		return;
 	}
 	add_task(idle,NULL, NULL,0,0,0,stack_len);
-	SP = (uint16_t)kernel.system_stack;
-	sei();
 	__asm__ volatile ("rjmp switch_task\n" ::);
 };
 
@@ -216,12 +214,13 @@ void task_starter(void * data)/*__attribute__ ((naked))*/{
 
 
 void task_stopper(void)/*__attribute__ ((naked))*/{
-	uint8_t interrupt;
 	kernel.current_task->state = TASK_STOPPING;
 	if (  kernel.current_task->finisher != NULL) 
 		kernel.current_task->finisher();
+	#ifdef USE_MUTEX
 	if ( kernel.current_task->holding_mutex != NULL )
 		mutex_unlock(kernel.current_task->holding_mutex);
+	#endif
 	kernel.current_task->func = NULL;
 	kernel.current_task->next_task = kernel.stopped_tasks;
 	kernel.stopped_tasks = kernel.current_task;
@@ -342,6 +341,7 @@ int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t 
  	*((new_task->stack)--) = ((uint16_t)task_starter) & 0xFF;
 	*((new_task->stack)--) = (((uint16_t)task_starter) >> 8) & 0xFF;
 	new_task->priority = priority;
+	new_task->period = period;
 	new_task->delay = delay;
 	new_task->init_data = init_data;
 	new_task->holding_mutex = NULL;
@@ -385,8 +385,9 @@ void yield() { /*  __attribute__ ((naked)) */
 		kernel.current_task->state = TASK_BLOCKED;
 		if ( tick_counter > kernel.current_task->ticks_after_activation )
 			kernel.current_task->delay = kernel.current_task->period - ( tick_counter - kernel.current_task->ticks_after_activation );
-		else
-			kernel.current_task->delay = kernel.current_task->period - ( kernel.current_task->ticks_after_activation - tick_counter );
+		else // tick counter has overflown, math is different
+			kernel.current_task->delay = kernel.current_task->period - ( ( 0xFFFF - kernel.current_task->ticks_after_activation )  + tick_counter );
+		kernel.current_task->ticks_after_activation = 0; // Cleaning this field to get it set up again 
 		add_task_to_blocked(kernel.current_task, &kernel.spleeping_tasks);
 	}
 	kernel.current_task = NULL;
@@ -408,14 +409,20 @@ void switch_task()  /*__attribute__ ((naked))*/{
 	kernel.current_task = kernel.ready_tasks;
 	kernel.ready_tasks = kernel.ready_tasks->next_task;
 	SP = (uint16_t)kernel.current_task->stack;
-	if (  kernel.current_task->state != TASK_READY )
+	
+	
+	/* Although this is only used on periodic tasks 
+	   there is no harm setting it for non periodic and 
+	   it will only happen once per non periodic task after tick_couuter != 0.
+	*/
+	if ( kernel.current_task->ticks_after_activation == 0 )
 		kernel.current_task->ticks_after_activation = tick_counter;
 	if ( kernel.current_task->state == TASK_STARTING )
 	{
 		kernel.current_task->state = TASK_RUNNING;
 		__asm__ volatile ("pop r25\npop r24\n" ::);
 	}
-	else if ( kernel.current_task->state != TASK_STOPPING ) // when stopping we don't need to context
+	else
 	{
 		kernel.current_task->state = TASK_RUNNING;
 		restore_cpu_context(); // The task has previously saved its context onto its stack

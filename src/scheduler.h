@@ -17,13 +17,14 @@
  * along with uKernel-SEMB.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
+ 
+#ifndef SCHEDULER_H_
+#define SCHEDULER_H_
 #include <stdint.h>
 #include "rtos_config.h"
  #include "mutex.h"
 
 #include <avr/interrupt.h>
-#ifndef SCHEDULER_H_
-#define SCHEDULER_H_
 
 #define GET_INTERRUPTS (SREG & _BV(SREG_I))
 #define RESTORE_INTERRUPTS(x) if(x) __asm__ volatile ("sei\n" ::);else __asm__ volatile ("cli\n" ::);
@@ -83,8 +84,9 @@ typedef struct task_t{
 	
 	/* Pointer to the next task*/
 	struct task_t * next_task;
-		
-	mutex * holding_mutex;
+	#ifdef USE_MUTEX
+		mutex * holding_mutex;
+	#endif
 	
 } task_t;
 

@@ -21,11 +21,7 @@
 #include "scheduler.h"
 #include <stdlib.h>
 
-
-struct mutex{
-	task_t * owner;
-	task_t * blocked_tasks;
-};
+#ifdef USE_MUTEX
 
 
 void block_task(mutex *m){
@@ -97,3 +93,5 @@ uint8_t mutex_unlock(mutex* m){
 		yield();
 	return LOCKED;	
 }
+
+#endif

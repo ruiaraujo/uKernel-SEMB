@@ -23,8 +23,6 @@
 
 #define USE_MUTEX 1
 
-#define USE_SEMAPHORES 1
-
 /* With this active there is no need to define an idle task*/
 #define USE_DEFAULT_IDLE 1
 

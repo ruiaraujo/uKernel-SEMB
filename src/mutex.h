@@ -29,7 +29,10 @@
 
 #define MUTEX_DEFAULT_INIT { .owner = NULL, .blocked_tasks = NULL };
 
-typedef struct mutex mutex;
+typedef struct mutex{
+	struct task_t * owner;
+	struct task_t * blocked_tasks;
+} mutex;
 	
 uint8_t mutex_init(mutex* m);
 uint8_t mutex_lock(mutex * m);
