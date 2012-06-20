@@ -206,7 +206,7 @@ void task_stopper(void)/*__attribute__ ((naked))*/{
 	kernel.current_task->state = TASK_STOPPING;
 	if (  kernel.current_task->finisher != NULL) 
 		kernel.current_task->finisher();
-	#ifdef USE_MUTEX
+	#if USE_MUTEX
 	while( kernel.current_task->holding_mutex != NULL )
 		mutex_unlock(kernel.current_task->holding_mutex);
 	#endif
@@ -333,7 +333,9 @@ int add_task(void (*f)(void*),void (*finisher)(void), void * init_data,uint16_t 
 	new_task->period = period;
 	new_task->delay = delay;
 	new_task->init_data = init_data;
+	#if USE_MUTEX
 	new_task->holding_mutex = NULL;
+	#endif
 	//placing arguments in the stack for further use
  	*((new_task->stack)--) = ((uint16_t)init_data) & 0xFF;
 	*((new_task->stack)--) = (((uint16_t)init_data) >> 8) & 0xFF;

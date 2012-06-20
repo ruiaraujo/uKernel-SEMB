@@ -84,7 +84,7 @@ typedef struct task_t{
 	
 	/* Pointer to the next task*/
 	struct task_t * next_task;
-	#ifdef USE_MUTEX
+	#if USE_MUTEX
 		mutex * holding_mutex;
 	#endif
 	

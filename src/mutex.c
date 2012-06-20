@@ -21,7 +21,7 @@
 #include "scheduler_private.h"
 #include <stdlib.h>
 
-#ifdef USE_MUTEX
+#if USE_MUTEX
 
 
 void block_task(mutex *m){
