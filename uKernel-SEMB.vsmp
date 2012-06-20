@@ -16,6 +16,7 @@
   <FILE GROUP="Header Files" NAME="tests/selected_test.h"/>
   <FILE GROUP="Source Files" NAME="tests/teste2.c"/>
   <FILE GROUP="Source Files" NAME="tests/teste3.c"/>
+  <FILE GROUP="Header Files" NAME="src/scheduler_private.h"/>
  </FILES>
  <CONFIGURATION TARGET="Debug" COMPILER="WinAVR" NAME="Debug">
   <CONTROLLER FAMILY="AVR" CLOCK="14745600Hz" TYPE="ATmega8"/>
@@ -35,7 +36,7 @@
    <FILE TOOL="CC" NAME="Debug/teste2.o">
     <FILE NAME="tests/teste2.c"/>
    </FILE>
-   <FILE TOOL="CC">
+   <FILE TOOL="CC" NAME="Debug/teste3.o">
     <FILE NAME="tests/teste3.c"/>
    </FILE>
   </FILE>
@@ -47,6 +48,7 @@
   <FILE NAME="src/default_idle.h"/>
   <FILE NAME="src/mutex.h"/>
   <FILE NAME="tests/selected_test.h"/>
+  <FILE NAME="src/scheduler_private.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION TOOL="CC" NAME="-g" VALUE="dwarf-2"/>
@@ -88,6 +90,7 @@
   <FILE NAME="src/default_idle.h"/>
   <FILE NAME="src/mutex.h"/>
   <FILE NAME="tests/selected_test.h"/>
+  <FILE NAME="src/scheduler_private.h"/>
   <OPTION DEFAULT="1" TOOL="LD" NAME="-mmcu=" VALUE="atmega8"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-W" VALUE="all"/>
   <OPTION DEFAULT="1" TOOL="CC" NAME="-g" VALUE="dwarf-2"/>

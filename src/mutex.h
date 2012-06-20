@@ -17,21 +17,23 @@
  * along with uKernel-SEMB.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#include <stdint.h>
-
 #ifndef MUTEX_H_
 #define MUTEX_H_
+#include <stdint.h>
+#include "rtos_config.h"
 
+#ifdef USE_MUTEX
 
 #define LOCKED 0
 #define ERROR 1
 #define NOT_LOCKED 2
 
-#define MUTEX_DEFAULT_INIT { .owner = NULL, .blocked_tasks = NULL };
+#define MUTEX_DEFAULT_INIT { .owner = NULL, .blocked_tasks = NULL, .next = NULL };
 
 typedef struct mutex{
 	struct task_t * owner;
 	struct task_t * blocked_tasks;
+	struct mutex * next; // To allow a task to hold several mutexes
 } mutex;
 	
 uint8_t mutex_init(mutex* m);
@@ -39,4 +41,5 @@ uint8_t mutex_lock(mutex * m);
 uint8_t mutex_try_lock(mutex * m);
 uint8_t mutex_unlock(mutex * m);
 
+#endif
 #endif

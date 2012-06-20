@@ -17,40 +17,28 @@
  * along with uKernel-SEMB.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
-#ifndef RTOS_CONFIG_H_
-#define RTOS_CONFIG_H_
+ 
+#ifndef SCHEDULER_PRIVATE_H_
+#define SCHEDULER_PRIVATE_H_
+#include "scheduler.h"
+#include <stdint.h>
+#include "rtos_config.h"
 
+/*Utilities to start and stop tasks*/
+void task_starter(void *) __attribute__ ((naked));
+void task_stopper(void) __attribute__ ((naked));
 
-#define USE_MUTEX 0
+// The all-important task switch function
+void switch_task() __attribute__ ((naked));
 
-/* With this active there is no need to define an idle task*/
-#define USE_DEFAULT_IDLE 1
+//Used in the Timer0 overflow interrupt
+uint8_t reduce_delays(void);
 
-#define USE_DYNAMIC_MEMORY 0
-#define NUMBER_OF_TASKS 10
-#define TOTAL_BYTES_STACK 400
+void add_task_to_priority_list(task_t * task, task_t ** first);
+
+void yield_fast(void) __attribute__ ((naked));
 
 #if !USE_DYNAMIC_MEMORY
-	#ifndef NUMBER_OF_TASKS
-		#error The maximum number of tasks must be specified
-	#endif
-	#ifndef TOTAL_BYTES_STACK
-		#error The total memory for stack must be defined
-	#endif
+uint8_t * get_stack(uint16_t lenght );
 #endif
-
-
-#define TEST_STACK_OVERFLOW 0
-#define ACTION_IN_STACK_OVERFLOW PORTC = 0xFF;
-#if TEST_STACK_OVERFLOW
-	#ifndef ACTION_IN_STACK_OVERFLOW
-		#error An action must be specified when detecting stack overflow
-	#endif
 #endif
-
-
-#if USE_DEFAULT_IDLE
-#include "default_idle.h"
-#endif
-
-#endif /* RTOS_CONFIG_H_ */

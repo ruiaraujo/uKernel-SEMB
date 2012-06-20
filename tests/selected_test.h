@@ -18,6 +18,6 @@
  *
  */
  
-#define _TEST_1 1 
+#define _TEST_1 0 
 #define _TEST_2 0
-#define _TEST_3 0
+#define _TEST_3 1

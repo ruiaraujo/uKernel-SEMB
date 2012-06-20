@@ -52,7 +52,6 @@ void task1(void * init) {
 }
 /* C = [7 .. 7] ms */
 void task2(void *  init) {
-	sleep_ticks(50);
 	while (1){
 		bit_set(PORTC, 1);
 		sleep_ticks(15);

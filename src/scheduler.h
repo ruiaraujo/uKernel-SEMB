@@ -101,9 +101,8 @@ struct kernel{
 
 extern struct kernel kernel;
 
-void increase_tick_counter(void);
-
 uint16_t get_tick_counter(void);
+
 task_t * get_task(void (*f)(void*));
 
 /*
@@ -111,20 +110,16 @@ task_t * get_task(void (*f)(void*));
  */
 int add_task(void (*f)(void *),void (*finisher)(void), void * init_data,  uint16_t period,uint16_t delay, uint8_t prority, uint16_t stack_len );
 
-void add_task_to_priority_list(task_t * task, task_t ** first);
-
-
 int stop_task(task_t * task);
 #define self_stop() stop_task(kernel.current_task)
 
-void yield(void) /*__attribute__ ((naked))*/;
+void yield(void) __attribute__ ((naked));
 
 /**
  * This function will allows a task to sleep for a number of ticks.
  */
 void sleep_ticks(uint16_t ticks);
 
-#define sleep_millis(millis) sleep_ticks(millis/*/kernel.millis_per_tick*/)
 
 void rtos_init(void (*idle)(void *),uint16_t stack_len,uint16_t system);
 #if USE_DEFAULT_IDLE

@@ -18,6 +18,7 @@
  *
  */
 #include "scheduler.h"
+#include "scheduler_private.h"
 #include <avr/interrupt.h>
 #include <avr/sleep.h>
 #include <stdlib.h>
@@ -34,6 +35,8 @@
  * and a static buffer where we will hold the number of stacks needed.
  */
 #if !USE_DYNAMIC_MEMORY
+	task_t __all_taks[NUMBER_OF_TASKS];
+	static uint16_t __current_position_tasks = 0;
 	uint8_t __stack_available[TOTAL_BYTES_STACK];
 	static uint16_t __current_position_stack = 0;
 
@@ -44,22 +47,12 @@
 		return &__stack_available[__current_position_stack-lenght];
 	}
 
-	task_t __all_taks[NUMBER_OF_TASKS];
-	static uint16_t __current_position_tasks = 0;
 #endif
 
 struct kernel kernel = { .system_stack = NULL, .current_task = NULL,.spleeping_tasks = NULL, .stopped_tasks = NULL,
 						.ready_tasks = NULL,.switch_active = 0};
 
 static uint16_t tick_counter = 0;
-
-void task_starter(void *) __attribute__ ((naked));
-
-void task_stopper(void) __attribute__ ((naked));
-
-// The all-important task switch function
-void switch_task() __attribute__ ((naked));
-uint8_t reduce_delays(void);
 
 void add_task_to_priority_list(task_t * task, task_t ** first){
 	task_t * current_task = *first;
@@ -119,9 +112,9 @@ static void add_task_to_blocked(task_t * task, task_t ** first){
 
 uint8_t reduce_delays(void){
 	task_t * task = kernel.spleeping_tasks;
-	task_t  *tmp = NULL;
+	task_t * tmp = NULL;
 	uint8_t need_switch = 0;
-	increase_tick_counter();
+	tick_counter++;
 	if ( task != NULL )
 	{
 		/* We only need to test TASK_DELAYED and TASK_BLOCKED */
@@ -159,11 +152,6 @@ uint8_t reduce_delays(void){
 //CPU automatically call this when TIMER0 overflows.
 ISR(TIMER0_OVF_vect, reduce_delays());
 
-void increase_tick_counter(void){
-	uint8_t interrupts = GET_INTERRUPTS;
-	tick_counter++; //multi byte variable. disabling interrupts while accessing
-	RESTORE_INTERRUPTS(interrupts);
-}
 
 uint16_t get_tick_counter(void){
 	return tick_counter;
@@ -214,11 +202,12 @@ void task_starter(void * data)/*__attribute__ ((naked))*/{
 
 
 void task_stopper(void)/*__attribute__ ((naked))*/{
+	sei();
 	kernel.current_task->state = TASK_STOPPING;
 	if (  kernel.current_task->finisher != NULL) 
 		kernel.current_task->finisher();
 	#ifdef USE_MUTEX
-	if ( kernel.current_task->holding_mutex != NULL )
+	while( kernel.current_task->holding_mutex != NULL )
 		mutex_unlock(kernel.current_task->holding_mutex);
 	#endif
 	kernel.current_task->func = NULL;
@@ -373,6 +362,14 @@ void sleep_ticks(uint16_t ticks){
 	__asm__ volatile ("rjmp switch_task\n" ::);
 }
 
+void yield_fast(){ /*  __attribute__ ((naked)) */
+	save_cpu_context();
+	kernel.current_task->stack = (uint8_t*)SP;
+	kernel.current_task->state = TASK_READY;
+	add_task_to_priority_list(kernel.current_task,&kernel.ready_tasks);
+	kernel.current_task = NULL;
+	__asm__ volatile ("rjmp switch_task\n" ::);
+}
 
 void yield() { /*  __attribute__ ((naked)) */
 	save_cpu_context();

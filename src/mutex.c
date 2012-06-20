@@ -18,7 +18,7 @@
  *
  */
 #include "mutex.h"
-#include "scheduler.h"
+#include "scheduler_private.h"
 #include <stdlib.h>
 
 #ifdef USE_MUTEX
@@ -35,10 +35,11 @@ void block_task(mutex *m){
 
 uint8_t mutex_init(mutex* m){
 	if ( m == NULL )
-		 return 1;
+		 return ERROR;
 	m->owner = NULL;
 	m->blocked_tasks = NULL;
-	return 0;
+	m->next = NULL;
+	return OK;
 }
 
 
@@ -61,6 +62,7 @@ uint8_t mutex_try_lock(mutex* m){
 		return LOCKED;
 	if ( m->owner == NULL ){
 		m->owner = kernel.current_task;
+		m->next = kernel.current_task->holding_mutex;
 		kernel.current_task->holding_mutex = m;
 		return LOCKED;
 	}
@@ -68,6 +70,7 @@ uint8_t mutex_try_lock(mutex* m){
 }
 
 uint8_t mutex_unlock(mutex* m){
+	mutex* previous;
 	task_t * task;
 	uint8_t interrupts, need_to_switch =0;
 	if ( m == NULL )
@@ -75,7 +78,19 @@ uint8_t mutex_unlock(mutex* m){
 	if (  m->owner != kernel.current_task )
 		return NO_PERMISSIONS;
 	m->owner = NULL;
-	kernel.current_task->holding_mutex = NULL;
+	if ( kernel.current_task->holding_mutex == m )
+	{
+		kernel.current_task->holding_mutex = m->next;
+	}
+	else{
+		previous = kernel.current_task->holding_mutex;
+		while ( previous != NULL ){
+			if ( previous->next == m  ){
+				previous->next = m->next;
+				break;
+			}
+		}
+	}
 	if ( m->blocked_tasks == NULL ){
 		return NOT_LOCKED;
 	}
@@ -89,9 +104,12 @@ uint8_t mutex_unlock(mutex* m){
 	add_task_to_priority_list(m->blocked_tasks,&kernel.ready_tasks );
 	RESTORE_INTERRUPTS(interrupts);
 	m->blocked_tasks = task;
-	if ( need_to_switch )
-		yield();
-	return LOCKED;	
+	if ( need_to_switch ){
+		yield_fast();
+		if (  m->owner != NULL )
+			return LOCKED;
+	}	
+	return NOT_LOCKED;
 }
 
 #endif
