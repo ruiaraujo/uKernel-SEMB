@@ -23,13 +23,6 @@
 #include <avr/sleep.h>
 #include <stdlib.h>
 
-
-/**
- * We take advantage of the distribution of the state codes.
- */
-#define TASK_CAN_RUN(x) (((x) & 0x0F)!=0)
-
-
 /**
  * If we don't want to use dynamic memory we have a static array of tasks
  * and a static buffer where we will hold the number of stacks needed.
@@ -129,6 +122,7 @@ uint8_t reduce_delays(void){
 					task->state = TASK_READY;
 				tmp = task->next_task;
 				add_task_to_priority_list(task,&kernel.ready_tasks);
+				task->ticks_after_activation = tick_counter;
 				task = tmp;
 				if ( task == NULL  )
 					break;
@@ -374,6 +368,7 @@ void yield_fast(){ /*  __attribute__ ((naked)) */
 }
 
 void yield() { /*  __attribute__ ((naked)) */
+	uint16_t time;
 	save_cpu_context();
 	kernel.current_task->stack = (uint8_t*)SP;
 	if ( kernel.current_task->period == 0 ){
@@ -383,11 +378,18 @@ void yield() { /*  __attribute__ ((naked)) */
 	else {
 		kernel.current_task->state = TASK_BLOCKED;
 		if ( tick_counter > kernel.current_task->ticks_after_activation )
-			kernel.current_task->delay = kernel.current_task->period - ( tick_counter - kernel.current_task->ticks_after_activation );
+			time = tick_counter - kernel.current_task->ticks_after_activation;
 		else // tick counter has overflown, math is different
-			kernel.current_task->delay = kernel.current_task->period - ( ( 0xFFFF - kernel.current_task->ticks_after_activation )  + tick_counter );
+			time = ( 0xFFFF - kernel.current_task->ticks_after_activation )  + tick_counter;
+		if ( time < kernel.current_task->period ){
+			kernel.current_task->delay = kernel.current_task->period - time;
+			add_task_to_blocked(kernel.current_task, &kernel.spleeping_tasks);
+		}
+		else{
+			kernel.current_task->state = TASK_READY;
+			add_task_to_priority_list(kernel.current_task,&kernel.ready_tasks);
+		}
 		kernel.current_task->ticks_after_activation = 0; // Cleaning this field to get it set up again 
-		add_task_to_blocked(kernel.current_task, &kernel.spleeping_tasks);
 	}
 	kernel.current_task = NULL;
 	__asm__ volatile ("rjmp switch_task\n" ::);
