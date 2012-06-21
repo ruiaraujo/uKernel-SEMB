@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include "rtos_config.h"
 
-#ifdef USE_MUTEX
+#if USE_MUTEX
 
 #define LOCKED 0
 #define ERROR 1
