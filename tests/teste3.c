@@ -45,7 +45,7 @@
 void task1(void * init) {
 	while (1){
 		bit_set(PORTC, 0);
-		sleep_ticks(10);
+		_delay_ms(380);
 		bit_clear(PORTC, 0);
 		yield();
 	}
@@ -54,7 +54,7 @@ void task1(void * init) {
 void task2(void *  init) {
 	while (1){
 		bit_set(PORTC, 1);
-		sleep_ticks(15);
+		_delay_ms(400);
 		bit_clear(PORTC, 1);
 		yield();
 	}
@@ -66,12 +66,6 @@ int main (void) {
 	TIMSK|=(uint8_t)(1<<TOIE0); //Enable Overflow Interrupt Enable
 	TCNT0=(uint8_t)241; //Initialize Timer Counter 0
 	DDRC|=(uint8_t)0x3F; //Port C[3,2,1,0] as output
-	PORTB = (uint8_t)0x03; //activate pull-ups on PB0 e PB1
-	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
-	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
-    DDRD &= ~(1 << DDD5);     // Clear the PD5 pin	// PD5 is now an input
-	PORTD |= (1 << PORTD5);   // turn On the Pull-up
-	TCCR1B |= (0 << CS12) | (0 << CS11) | (1 << CS10);  // No prescaling
 	cli();
 	/* non -periodic task */
 	
