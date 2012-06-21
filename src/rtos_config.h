@@ -21,7 +21,7 @@
 #define RTOS_CONFIG_H_
 
 
-#define USE_MUTEX 0
+#define USE_MUTEX 1
 
 /* With this active there is no need to define an idle task*/
 #define USE_DEFAULT_IDLE 1

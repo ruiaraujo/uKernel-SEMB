@@ -47,8 +47,6 @@ mutex m1 = MUTEX_DEFAULT_INIT;
 /* C = [12 .. 20] ms */
 void task1(void * init) {
 	
-
-	
 	while (1){
 		mutex_lock(&m1);
 		bit_set(PORTC, 0);
@@ -60,9 +58,6 @@ void task1(void * init) {
 }
 /* C = [7 .. 7] ms */
 void task2(void *  init) {
-	
-	sleep_ticks(50);
-	
 	while (1){
 		mutex_lock(&m1);
 		bit_set(PORTC, 1);
@@ -79,12 +74,6 @@ int main (void) {
 	TIMSK|=(uint8_t)(1<<TOIE0); //Enable Overflow Interrupt Enable
 	TCNT0=(uint8_t)241; //Initialize Timer Counter 0
 	DDRC|=(uint8_t)0x3F; //Port C[3,2,1,0] as output
-	PORTB = (uint8_t)0x03; //activate pull-ups on PB0 e PB1
-	PORTD = (uint8_t)0x04; //activate pull-ups on PD2-INT0
-	GICR|=(uint8_t)(0x40); //Enable External Interrupt 0
-    DDRD &= ~(1 << DDD5);     // Clear the PD5 pin	// PD5 is now an input
-	PORTD |= (1 << PORTD5);   // turn On the Pull-up
-	TCCR1B |= (0 << CS12) | (0 << CS11) | (1 << CS10);  // No prescaling
 	cli();
 	/* non -periodic task */
 	
